@@ -5,3 +5,5 @@ tmp
 /.idea/
 /cv19index.iml
 *.egg-info
+build
+dist
