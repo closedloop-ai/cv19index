@@ -8,7 +8,7 @@ This repository provides information for those interested in computing COVID-19 
 
 ## Versions of the CV19 Index
 
-There are 3 different versions of the CV19 Index.  Each is a different predictive models for the CV19 Index.  The models represent different tradeoffs between ease of implementation and overall accuracy.  A full description of the creation of these models is available in the accompanying paper, "Building a COVID-19 Vulnerability Index" (https://cv19index.com).
+There are 3 different versions of the CV19 Index.  Each is a different predictive models for the CV19 Index.  The models represent different tradeoffs between ease of implementation and overall accuracy.  A full description of the creation of these models is available in the accompanying paper, "Building a COVID-19 Vulnerability Index" (http://cv19index.com).
 
 The 3 models are:
 
@@ -16,7 +16,7 @@ The 3 models are:
 
 * _Open Source ML_ - An XGBoost model, packaged with this repository, that uses Age, Gender, and 500+ features defined from the [CCSR](https://www.hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp)  categorization of diagnosis codes.  This model had a 0.811 ROC AUC on our test set.
 
-* _Free Full_ - An XGBoost model that fully utilizes all the data available in Medicare claims, along with geographically linked public and Social Determinants of Health data.  This model provides the highest accuracy of the 3 CV19 Indexes, but requires additional linked data and transformations that preclude an straightforward open source implementation.  ClosedLoop is making a free, hosted version of this model available to healthcare organizations.  For more information, see https://cv19index.com.
+* _Free Full_ - An XGBoost model that fully utilizes all the data available in Medicare claims, along with geographically linked public and Social Determinants of Health data.  This model provides the highest accuracy of the 3 CV19 Indexes, but requires additional linked data and transformations that preclude an straightforward open source implementation.  ClosedLoop is making a free, hosted version of this model available to healthcare organizations.  For more information, see http://cv19index.com.
 
 ## Computing the CV19 Index for a patient population
 
