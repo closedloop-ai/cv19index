@@ -18,6 +18,38 @@ The 3 models are:
 
 * _Free Full_ - An XGBoost model that fully utilizes all the data available in Medicare claims, along with geographically linked public and Social Determinants of Health data.  This model provides the highest accuracy of the 3 CV19 Indexes but requires additional linked data and transformations that preclude a straightforward open-source implementation.  ClosedLoop is making a free, hosted version of this model available to healthcare organizations.  For more information, see http://cv19index.com.
 
+### Model Performance
+We evaluate the model using a full train/test split.  The models are tested on 369,865 individuals.  We express model performance using the standard ROC curves, as well as the following metrics:
+<table style="width:100%">
+  <tr>
+    <th>Model</th>
+    <th>ROC AUC</th>
+    <th>Sensitivity as 3% Alert Rate</th>
+    <th>Sensitivity as 5% Alert Rate</th>
+  </tr>
+  <tr>
+    <td>Logistic Regression</td>
+    <td>.731</td>
+    <td>.214</td>
+    <td>.314</td>
+  </tr>
+  <tr>
+    <td>XGBoost, Diagnosis History + Age</td>
+    <td>.810</td>
+    <td>.234</td>
+    <td>.324</td>
+  </tr>
+  <tr>
+    <td>XGBoost, Full Features</td>
+    <td>.810</td>
+    <td>.251</td>
+    <td>.336</td>
+  </tr>
+</table>
+
+<img src="./img/roc.png" />
+
+
 ## Computing the CV19 Index for a patient population
 
 This section describes how to run the _Simple Linear_ and _Open Source ML_ versions of the CV19 Index using this package.  The models work off of CSV files or Pandas data frames.
