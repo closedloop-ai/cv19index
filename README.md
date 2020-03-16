@@ -2,7 +2,7 @@
 
 This repository contains the source code, models, and example usage of the COVID-19 Vulnerability Index (CV19 Index).  The CV19 Index is a predictive model that identifies people who are likely to have a heightened vulnerability to severe complications from COVID-19 (commonly referred to as “The Coronavirus”).  The CV19 Index is intended to help hospitals, federal / state / local public health agencies and other healthcare organizations in their work to identify, plan for, respond to, and reduce the impact of COVID-19 in their communities.
 
-Full information on the CV19 Index, including the links to a full FAQ, User Forums, and information about upcoming Webinars is available at https://cv19index.com
+Full information on the CV19 Index, including the links to a full FAQ, User Forums, and information about upcoming Webinars is available at http://cv19index.com
 
 This repository provides information for those interested in computing COVID-19 Vulnerability Index scores.
 
