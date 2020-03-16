@@ -8,7 +8,7 @@ This repository provides information for those interested in computing COVID-19 
 
 ## Versions of the CV19 Index
 
-There are 3 different versions of the CV19 Index.  Each is a different predictive models for the CV19 Index.  The models represent different tradeoffs between ease of implementation and overall accuracy.  A full description of the creation of these models is available in the accompanying paper, "Building a COVID-19 Vulnerability Index" (http://cv19index.com).
+There are 3 different versions of the CV19 Index.  Each is a different predictive model for the CV19 Index.  The models represent different tradeoffs between ease of implementation and overall accuracy.  A full description of the creation of these models is available in the accompanying paper, "Building a COVID-19 Vulnerability Index" (http://cv19index.com).
 
 The 3 models are:
 
