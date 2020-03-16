@@ -16,7 +16,7 @@ The 3 models are:
 
 * _Open Source ML_ - An XGBoost model, packaged with this repository, that uses Age, Gender, and 500+ features defined from the [CCSR](https://www.hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp)  categorization of diagnosis codes.  This model had a 0.811 ROC AUC on our test set.
 
-* _Free Full_ - An XGBoost model that fully utilizes all the data available in Medicare claims, along with geographically linked public and Social Determinants of Health data.  This model provides the highest accuracy of the 3 CV19 Indexes, but requires additional linked data and transformations that preclude an straightforward open source implementation.  ClosedLoop is making a free, hosted version of this model available to healthcare organizations.  For more information, see http://cv19index.com.
+* _Free Full_ - An XGBoost model that fully utilizes all the data available in Medicare claims, along with geographically linked public and Social Determinants of Health data.  This model provides the highest accuracy of the 3 CV19 Indexes but requires additional linked data and transformations that preclude a straightforward open-source implementation.  ClosedLoop is making a free, hosted version of this model available to healthcare organizations.  For more information, see http://cv19index.com.
 
 ## Computing the CV19 Index for a patient population
 
@@ -28,11 +28,11 @@ The input to the models is a CSV file or Pandas data frame, where each row repre
 
 #### Output Format
 
-See the example [Jupyter notebook](examples/Generate%20Test%20DataFile.ipynb) for a description of the output data returned.
+See the example [Jupyter notebook](examples/Tutorial.ipynb) for a description of the output data returned.
 
 ### Data Preparation
 
-An [Jupyter notebook](examples/Tutorial.ipynb) with a worked example showing how to prep a data set is provided in the [examples](examples) folder.  This folder begins with a sample set of claims data and performs the necessary trasnformations to generate the input to the model.
+An [Jupyter notebook](examples/Tutorial.ipynb) with a worked example showing how to prep a data set is provided in the [examples](examples) folder.  This folder begins with a sample set of claims data and performs the necessary transformations to generate the input to the model.
 
 ### PyPI Install
 
@@ -54,7 +54,7 @@ To execute the simple model.
 cv19index input.csv output.csv -m simple
 ```
 
-Using the provided example datafiles.
+Using the provided example data files.
 
 ```bash
 cv19index examples/model_medium/example_input.csv examples/model_medium/example_prediction.csv
