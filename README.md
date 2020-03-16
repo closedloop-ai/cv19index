@@ -74,29 +74,23 @@ pip install cv19index
 
 ### Executing Model
 
-To execute the medium model.
+To execute the xgboost model.
 
 ```bash
 cv19index input.csv output.csv
 ```
 
-To execute the simple model.
-
-```bash
-cv19index input.csv output.csv -m simple
-```
-
 Using the provided example data files.
 
 ```bash
-cv19index examples/model_medium/example_input.csv examples/model_medium/example_prediction.csv
+cv19index examples/xgboost/example_input.csv examples/xgboost/example_prediction.csv
 ```
 
 Using from within python using a pandas dataframe as input and get the predictions out as a pandas dataframe.
 
 ```python
 from pkg_resources import resource_filename
-model_fpath = resource_filename("cv19index", "resources/model_medium/model.pickle")
+model_fpath = resource_filename("cv19index", "resources/xgboost/model.pickle")
 model = read_model(model_fpath)
 predictions_df = run_model(input_df, model)
 ```
