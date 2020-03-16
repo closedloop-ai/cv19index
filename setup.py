@@ -4,7 +4,7 @@ from distutils.core import setup
 
 HERE = pathlib.Path(__file__).parent
 
-README = (HERE / "README.md").read_text()
+README = (HERE / "README.md").read_text("utf-8")
 
 setup(
     name="cv19index",
