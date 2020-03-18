@@ -45,7 +45,7 @@ def rescale_predictions(
     found here: https://github.com/dmlc/xgboost/issues/863
 
     predictions - the original predictions which need to be rescaled
-    train_data_stats - dictionary containing the total number of events and number 
+    train_data_stats - dictionary containing the total number of events and number
         of rare events
 
     Returns: rescaled predictions which now correspond to probabilities
@@ -335,8 +335,8 @@ def run_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
 
 
 def reorder_inputs(df_inputs: pd.DataFrame, predictor: Dict[str, Any]) -> pd.DataFrame:
-    """This code reorders in the input data frame columns to match the expected order 
-    from training. If the lists of columns don't match, no error is raised, as this 
+    """This code reorders in the input data frame columns to match the expected order
+    from training. If the lists of columns don't match, no error is raised, as this
     will cause issues later."""
     if set(predictor["model"].feature_names) == set(df_inputs.columns) and predictor[
         "model"
@@ -373,19 +373,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("input")
     parser.add_argument("output")
-    parser.add_argument("-m", "--model", choices=["simple", "medium"])
+    parser.add_argument("-m", "--model", choices=["xgboost"], default="xgboost")
 
     args = parser.parse_args()
 
-    if args.model == "simple":
-        model = resource_filename("cv19index", "resources/model_simple/model.pickle")
+    if args.model == "xgboost":
+        model = resource_filename("cv19index", "resources/xgboost/model.pickle")
         schema = resource_filename(
-            "cv19index", "resources/model_simple/input.csv.schema.json"
-        )
-    elif args.model == "medium":
-        model = resource_filename("cv19index", "resources/model_medium/model.pickle")
-        schema = resource_filename(
-            "cv19index", "resources/model_medium/input.csv.schema.json"
+            "cv19index", "resources/xgboost/input.csv.schema.json"
         )
 
     do_run(args.input, schema, model, args.output)

@@ -8,7 +8,7 @@ README = (HERE / "README.md").read_text("utf-8")
 
 setup(
     name="cv19index",
-    version="1.0.0",
+    version="1.0.1",
     description="COVID-19 Vulnerability Index",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -32,8 +32,8 @@ setup(
     zip_safe=False,
     package_data={
         "cv19index": [
-            "resources/model_medium/input.csv.schema.json",
-            "resources/model_medium/model.pickle",
+            "resources/xgboost/input.csv.schema.json",
+            "resources/xgboost/model.pickle",
             "resources/ccsrEdges.txt",
             "resources/ccsrNodes.txt",
         ]

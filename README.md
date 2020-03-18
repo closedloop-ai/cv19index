@@ -14,7 +14,7 @@ The 3 models are:
 
 * _Simple Linear_ - A simple linear logistic regression model that uses only 14 variables.  An implementation of this model is included in this package.  This model had a 0.731 ROC AUC on our test set.
 
-* _Open Source ML_ - An XGBoost model, packaged with this repository, that uses Age, Gender, and 500+ features defined from the [CCSR](https://www.hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp)  categorization of diagnosis codes.  This model had a 0.811 ROC AUC on our test set.
+* _Open Source ML_ - An XGBoost model, packaged with this repository, that uses Age, Gender, and 500+ features defined from the [CCSR](https://www.hcup-us.ahrq.gov/toolssoftware/ccsr/ccs_refined.jsp)  categorization of diagnosis codes.  This model had a 0.810 ROC AUC on our test set.
 
 * _Free Full_ - An XGBoost model that fully utilizes all the data available in Medicare claims, along with geographically linked public and Social Determinants of Health data.  This model provides the highest accuracy of the 3 CV19 Indexes but requires additional linked data and transformations that preclude a straightforward open-source implementation.  ClosedLoop is making a free, hosted version of this model available to healthcare organizations.  For more information, see http://cv19index.com.
 
@@ -74,29 +74,23 @@ pip install cv19index
 
 ### Executing Model
 
-To execute the medium model.
+To execute the xgboost model.
 
 ```bash
 cv19index input.csv output.csv
 ```
 
-To execute the simple model.
-
-```bash
-cv19index input.csv output.csv -m simple
-```
-
 Using the provided example data files.
 
 ```bash
-cv19index examples/model_medium/example_input.csv examples/model_medium/example_prediction.csv
+cv19index examples/xgboost/example_input.csv examples/xgboost/example_prediction.csv
 ```
 
 Using from within python using a pandas dataframe as input and get the predictions out as a pandas dataframe.
 
 ```python
 from pkg_resources import resource_filename
-model_fpath = resource_filename("cv19index", "resources/model_medium/model.pickle")
+model_fpath = resource_filename("cv19index", "resources/xgboost/model.pickle")
 model = read_model(model_fpath)
 predictions_df = run_model(input_df, model)
 ```
