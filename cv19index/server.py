@@ -48,7 +48,7 @@ def create_model_app(model_fpath, schema_fpath, **kwargs):
 
 def sagemaker_serve():
     app = create_model_app(
-        resource_filename("cv19index", "resources/model_medium/model.pickle"),
-        resource_filename("cv19index", "resources/model_medium/input.csv.schema.json"),
+        resource_filename("cv19index", "resources/xgboost/model.pickle"),
+        resource_filename("cv19index", "resources/xgboost/input.csv.schema.json"),
     )
     app.run("0.0.0.0", 8080, debug=False)
