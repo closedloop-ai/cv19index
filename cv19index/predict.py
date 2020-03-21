@@ -1,7 +1,6 @@
 import argparse
 import logging
 import math
-import pathlib
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
@@ -9,7 +8,7 @@ import pandas as pd
 import xgboost as xgb
 from pkg_resources import resource_filename
 
-from .io import read_frame, read_model, write_predictions
+from .io import read_frame, read_model, write_predictions, read_claim, read_demo
 from .preprocess import apply_int_mapping
 from .shap_top_factors import (
     append_empty_shap_columns,
@@ -299,7 +298,21 @@ def get_agg_preds(val_to_preds: Dict[str, Any]) -> pd.DataFrame:
     return agg_preds
 
 
-def run_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
+def reorder_inputs(df_inputs: pd.DataFrame, predictor: Dict[str, Any]) -> pd.DataFrame:
+    """This code reorders in the input data frame columns to match the expected order
+    from training. If the lists of columns don't match, no error is raised, as this
+    will cause issues later."""
+    if set(predictor["model"].feature_names) == set(df_inputs.columns) and predictor[
+        "model"
+    ].feature_names != list(df_inputs.columns):
+        logger.info("Reordering test inputs to match training.")
+        return df_inputs.loc[:, predictor["model"].feature_names]
+    return df_inputs
+
+
+def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
+    import xgboost as xgb
+
     df_inputs = apply_int_mapping(
         predictor["mapping"], run_df, error_unknown_values=False
     )
@@ -334,18 +347,6 @@ def run_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
     return predictions
 
 
-def reorder_inputs(df_inputs: pd.DataFrame, predictor: Dict[str, Any]) -> pd.DataFrame:
-    """This code reorders in the input data frame columns to match the expected order
-    from training. If the lists of columns don't match, no error is raised, as this
-    will cause issues later."""
-    if set(predictor["model"].feature_names) == set(df_inputs.columns) and predictor[
-        "model"
-    ].feature_names != list(df_inputs.columns):
-        logger.info("Reordering test inputs to match training.")
-        return df_inputs.loc[:, predictor["model"].feature_names]
-    return df_inputs
-
-
 def do_run(
     input_fpath: str, schema_fpath: str, model_fpath: str, output_fpath: str, **kwargs
 ) -> None:
@@ -354,12 +355,12 @@ def do_run(
     writes out predictions.
     """
     logger.info(f"Running {model_fpath} using {input_fpath} to {output_fpath}")
-    run_df = read_frame(input_fpath, schema_fpath, empty_ok=True)
+    run_df = read_frame(input_fpath, schema_fpath)
 
     if not run_df.empty:
         model = read_model(model_fpath)
 
-        out = run_model(run_df, model, **kwargs)
+        out = run_xgb_model(run_df, model, **kwargs)
         write_predictions(out, output_fpath)
     else:
         #: If there are no inputs to run predictions on, bypass
@@ -367,20 +368,35 @@ def do_run(
         write_predictions(run_df, output_fpath)
 
 
-def main():
+def write_xgb_predictions(predictions: pd.DataFrame):
+    summary_file = 'prediction_summary.csv'
+    output = predictions.to_csv(index=False, float_format="%f")
+
+    with open(summary_file, "wt") as fobj:
+        fobj.write(output)
+
+
+def parser():
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("input")
-    parser.add_argument("output")
+    parser.add_argument("demo")
+    parser.add_argument("claim")
     parser.add_argument("-m", "--model", choices=["xgboost"], default="xgboost")
+    parser.add_argument("-p", "--path-to-model", default="cv19index/resources/xgboost/model.pickle")
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    if args.model == "xgboost":
-        model = resource_filename("cv19index", "resources/xgboost/model.pickle")
-        schema = resource_filename(
-            "cv19index", "resources/xgboost/input.csv.schema.json"
-        )
 
-    do_run(args.input, schema, model, args.output)
+def main():
+    args = parser()
+    demo_df = read_demo(args.demo)
+    claim_df = read_claim(args.claim)
+    input_df = demo_df.join(claim_df)
+
+    if args.model == 'xgboost':
+        model = read_model(args.path_to_model)
+        predictions = run_xgb_model(input_df, model)
+        write_xgb_predictions(predictions)
+    else:
+        logger.error(f"{args.model} is not a valid model type. valid models are xgboost.")

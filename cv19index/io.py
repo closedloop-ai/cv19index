@@ -1,17 +1,18 @@
 # IO functions to read and write model and prediction files in an appropriate format.
 
 import json
-import logging
 import math
 import pickle
-
+from typing import Dict
 import pandas as pd
-from pandas.io.common import _NA_VALUES
+from pkg_resources import resource_filename
 
-from .util import UserException, schema_dtypes
+from .util import schema_dtypes
 
 
-logger = logging.getLogger(__file__)
+INDEX = 'personId'
+
+XLS = ('xls', 'xlsx', 'xlsm', 'xlsb', 'odf')
 
 
 def read_model(fpath):
@@ -19,86 +20,92 @@ def read_model(fpath):
         return pickle.load(fobj)
 
 
-def read_frame(fpath, schema_path=None, empty_ok=False):
-    if schema_path is None:
-        schema_path = fpath + ".schema.json"
-
-    with open(schema_path, "rt") as f:
-        schema_file = json.load(f)
-        idFields = schema_file["idFields"] if "idFields" in schema_file else None
-        schema_json = schema_file["schema"]
-    names = [x["name"] for x in schema_json]
-
-    if fpath.endswith(".parquet"):
-        ret = pd.read_parquet(fpath)
-        if (
-            schema_file["idFormat"] == "compoundIndex"
-            or schema_file["idFormat"] == "compound"
-        ):
-            ret.index = ret.index.map(_eval_array_column)
-        return ret
-
-    dtypes = schema_dtypes(schema_json)
-
-    # Pandas won't read in ints with NA values, so read those in as floats.
-    def adj_type(x):
-        if x == "int32" or x == "int64":
-            return "float64"
-        return x
-
-    adj_dtypes = {k: adj_type(x) for k, x in dtypes.items()}
-
-    # Pandas converts a string with "NA" as a real NaN/Null. We don't want this
-    # for real string columns. NA can show up as a real flag in customer data and
-    # it doesn't mean it should be treated as NaN/Null.
-    def na_vals(x):
-        # For now, only ignore NA conversion for strings. Structs/etc can still use it.
-        if x["dataType"]["dataType"] in ("string"):
-            return []
-        else:
-            return _NA_VALUES
-
-    # needs to be based on schema json, otherwise pandas types are just "object" which
-    # tells us little on if we need to retain nan parsing.
-    na_values = {x["name"]: na_vals(x) for x in schema_json}
-
-    date_cols = [
-        x["name"]
-        for x in schema_json
-        if x["dataType"]["dataType"] == "date"
-        or x["dataType"]["dataType"] == "datetime"
+def validate_df(df, dtype) -> pd.DataFrame:
+    """ Now verify that everything is exactly as it should be. """
+    print(df.columns, dtype)
+    incorrect_types = [
+        f"{n} expected {t} but was {df[n].dtype}"
+        for n, t in dtype.items()
+        if n != INDEX and df[n].dtype != t
     ]
+    assert len(incorrect_types) == 0, f"Incorrect types:\n" + "\n".join(incorrect_types)
+
+    return df
+
+
+def is_excel(fpath: str) -> bool:
+    return fpath.endswith(XLS)
+
+
+def read_claim(fpath: str) -> pd.DataFrame:
+    schame_fpath = resource_filename("cv19index","resources/xgboost/claims.schema.json")
+    return read_frame(fpath, schame_fpath)
+
+
+def read_demo(fpath: str) -> pd.DataFrame:
+    schema_fpath = resource_filename("cv19index", "resources/xgboost/demo.schema.json")
+    return read_frame(fpath, schema_fpath)
+
+
+def read_frame(fpath, schema_fpath) -> pd.DataFrame:
+
+    with open(schema_fpath) as f:
+        schema = json.load(f)
+    dtype = schema_dtypes(schema["schema"])
+
+    if is_excel(fpath):
+        df = read_excel(fpath, dtype)
+    elif fpath.endswith(".parquet"):
+        df = read_parquet(fpath, dtype)
+    elif fpath.endswith(".csv"):
+        df = read_csv(fpath, dtype)
+    else:
+        raise TypeError(f'This script reads files based the extension.\n'
+                        f'The known extensions are {", ".join(XLS)}, .parquet, .csv'
+                        f'Please ensure your file is one of those file types with correct file extension.')
+
+    return df
+
+
+def read_excel(fpath, dtype) -> pd.DataFrame:
+    print(fpath, INDEX, dtype)
+    df = pd.read_excel(fpath, dtype=dtype, index_col=INDEX)
+
+    print(df.head(10))
+
+    return validate_df(df, dtype)
+
+
+def read_parquet(fpath, dtype) -> pd.DataFrame:
+    df = pd.read_parquet(fpath)
+    # Now set the index.
+    df = df.set_index(INDEX)
+    return validate_df(df, dtype)
+
+
+def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
+
+    date_cols = [k for k, v in dtype if v == "datetime"]
+
     # Pandas read_csv ignores the dtype for the index column,
     # so we don't read in with an index column.  Set it later.
     df = pd.read_csv(
         fpath,
         header=0,
-        names=names,
-        dtype=adj_dtypes,
-        parse_dates=date_cols,
-        na_values=na_values,
-        keep_default_na=False,
+        names=list(dtype.keys()),
+        dtype=dtype,
+        parse_dates=date_cols
     )
-
-    if df.empty and not empty_ok:
-        raise UserException(f"The input data is empty and only contains headers.")
-
-    # Convert array columns
-    array_cols = [
-        x["name"] for x in schema_json if x["dataType"]["dataType"] == "array"
-    ]
-    for col in array_cols:
-        df[col] = df[col].map(_eval_array_column)
 
     # Now go back and fix all the ints (which we read in as floats to handle NAs)
     df = df.fillna(0)
-    for k, x in dtypes.items():
-        if x == "int32" or x == "int64":
-            df[k] = df[k].astype(x)
+    for k, x in dtype.items():
+        if x == "float64":
+            df[k] = df[k].astype('int64')
 
     # Sometimes pandas doesn't pay attention to the type we give it.
     # Go back and ask it to really make every column be what we asked.
-    for n, t in adj_dtypes.items():
+    for n, t in dtype.items():
         df[n] = df[n].astype(t)
 
     # Oh, and if there are date/datetime types that are empty, pandas "helps us out"
@@ -107,17 +114,9 @@ def read_frame(fpath, schema_path=None, empty_ok=False):
     for c in date_cols:
         df.loc[df[c] == 0, [c]] = None
 
-    # Now verify that everything is exactly as it should be.
-    incorrect_types = [
-        f"{n} expected {t} but was {df[n].dtype}"
-        for n, t in adj_dtypes.items()
-        if df[n].dtype != t
-    ]
-    assert len(incorrect_types) == 0, f"Incorrect types:\n" + "\n".join(incorrect_types)
-
     # Now set the index.
-    df = df.set_index(names[0], drop=True)
-    return df
+    df = df.set_index(INDEX, drop=True)
+    return validate_df(df, dtype)
 
 
 def write_predictions(predictions, fpath):
