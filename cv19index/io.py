@@ -5,14 +5,13 @@ import math
 import pickle
 from typing import Dict
 import pandas as pd
+from pandas.io.common import _NA_VALUES
 from pkg_resources import resource_filename
 
 from .util import schema_dtypes
 
 
 INDEX = 'personId'
-
-XLS = ('xls', 'xlsx', 'xlsm', 'xlsb', 'odf')
 
 
 def read_model(fpath):
@@ -33,10 +32,6 @@ def validate_df(df, dtype) -> pd.DataFrame:
     return df
 
 
-def is_excel(fpath: str) -> bool:
-    return fpath.endswith(XLS)
-
-
 def read_claim(fpath: str) -> pd.DataFrame:
     schame_fpath = resource_filename("cv19index","resources/xgboost/claims.schema.json")
     return read_frame(fpath, schame_fpath)
@@ -48,6 +43,10 @@ def read_demo(fpath: str) -> pd.DataFrame:
 
 
 def read_frame(fpath, schema_fpath) -> pd.DataFrame:
+    XLS = ('xls', 'xlsx', 'xlsm', 'xlsb', 'odf')
+
+    def is_excel(fpath: str) -> bool:
+        return fpath.endswith(XLS)
 
     with open(schema_fpath) as f:
         schema = json.load(f)
@@ -85,7 +84,19 @@ def read_parquet(fpath, dtype) -> pd.DataFrame:
 
 def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
 
-    date_cols = [k for k, v in dtype if v == "datetime"]
+    date_cols = [k for k, v in dtype.items() if v == "datetime"]
+
+    # Pandas converts a string with "NA" as a real NaN/Null. We don't want this
+    # for real string columns. NA can show up as a real flag in customer data and
+    # it doesn't mean it should be treated as NaN/Null.
+    def na_vals(x):
+        # For now, only ignore NA conversion for strings. Structs/etc can still use it.
+        if x["dataType"]["dataType"] in ("string"):
+            return []
+        else:
+            return _NA_VALUES
+
+    na_values = {k: na_vals(v) for k, v in dtype.items()}
 
     # Pandas read_csv ignores the dtype for the index column,
     # so we don't read in with an index column.  Set it later.
@@ -94,7 +105,8 @@ def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
         header=0,
         names=list(dtype.keys()),
         dtype=dtype,
-        parse_dates=date_cols
+        parse_dates=date_cols,
+        na_values=na_values
     )
 
     # Now go back and fix all the ints (which we read in as floats to handle NAs)
@@ -158,5 +170,4 @@ def _eval_array_column(x):
         return []
     else:
         msg = f"Unexpected data in array column: {x}"
-        logger.error(msg)
         raise Exception(msg)
