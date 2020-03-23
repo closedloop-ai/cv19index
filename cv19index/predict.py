@@ -10,7 +10,7 @@ import xgboost as xgb
 from pkg_resources import resource_filename
 
 from .io import read_frame, read_model, write_predictions, read_claim, read_demo
-from .preprocess import apply_int_mapping, preprocess_claim, preprocess_demo
+from .preprocess import apply_int_mapping, preprocess_xgboost
 from .shap_top_factors import (
     append_empty_shap_columns,
     calculate_shap_percentile,
@@ -382,16 +382,7 @@ def do_run_claims(args):
     claim_df = read_claim(args.claim)
 
     if args.model == 'xgboost':
-        demo_df = preprocess_demo(demo_df)
-        claim_df = preprocess_claim(claim_df)
-        input_df = pd.merge(claim_df, demo_df, left_on='personId', right_on='personId', how='outer')
-
-        # Getting the column order for the model
-        with open(resource_filename("cv19index", "resources/xgboost/input.csv.schema.json")) as f:
-            column_order = [item['name'] for item in json.load(f)['schema']]
-
-        # returning the needed features.
-        input_df = input_df[column_order]
+        input_df = preprocess_xgboost(claim_df, demo_df)
 
         model = read_model(args.path_to_model)
         predictions = run_xgb_model(input_df, model)

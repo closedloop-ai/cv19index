@@ -53,7 +53,7 @@ def cleanICD10Syntax(code):
         code
 
 
-def preprocess_claim(claim_df: pd.DataFrame, asOfDate: pd.datetime = pd.to_datetime('2018-06-01')):
+def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: pd.datetime = pd.to_datetime('2018-06-01')):
     DIAGNOSIS_COLS = ['dx1', 'dx2', 'dx3', 'dx4', 'dx5', 'dx6', 'dx7', 'dx8', 'dx9', 'dx10', 'dx11', 'dx12', 'dx13',
                       'dx14', 'dx15', 'dxE1']
 
@@ -94,6 +94,7 @@ def preprocess_claim(claim_df: pd.DataFrame, asOfDate: pd.datetime = pd.to_datet
     edges_df['code'] = edges_df['child'].apply(lambda x: x.split(':')[1])
 
     # Generating features for each node
+    col_types = {}
     for CCSR, description in nodes.values:
         # Getting the codes
         codes = edges_df[edges_df['parent'].str.contains(CCSR)]
@@ -104,15 +105,27 @@ def preprocess_claim(claim_df: pd.DataFrame, asOfDate: pd.datetime = pd.to_datet
         description = re.sub("[^\P{P}-/']+", "_", description.replace(")", ""))
         column_name = "Diagnosis of " + description + " in the previous 12 months"
         claim_df[column_name] = claim_df['personId'].apply(lambda x: True if x in selected_personId else False)
-
-    logger.info(f"Preprocessing complete data frame as follows.")
-    logger.info(claim_df.head(5))
-    logger.info(claim_df.dtypes)
-
-    return claim_df
+        col_types[column_name] = 'bool'
 
 
-def preprocess_demo(demo_df: pd.DataFrame):
     # rename as needed
     demo_df = demo_df.rename(columns={'gender': 'Gender', 'age': 'Age'})
-    return demo_df
+
+    input_df = pd.merge(claim_df, demo_df, left_on='personId', right_on='personId', how='outer')
+
+    # Getting the column order for the model
+    with open(resource_filename("cv19index", "resources/xgboost/input.csv.schema.json")) as f:
+        column_order = [item['name'] for item in json.load(f)['schema']]
+
+    # returning the needed features.
+    input_df = input_df[column_order]
+
+    # bool type doesnt get set, force it on the model columns
+    input_df = input_df.astype(col_types)
+
+
+    logger.info(f"Preprocessing complete data frame as follows.")
+    logger.info(input_df.head(5))
+    logger.info(input_df.dtypes)
+
+    return input_df
