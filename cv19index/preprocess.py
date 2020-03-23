@@ -60,7 +60,6 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
     logger.info(f"Beginning claim data frame preprocessing, raw data frame as follows.")
     logger.info(claim_df.head(5))
     logger.info(claim_df.dtypes)
-    logger.info(claim_df.index)
 
     asOfPastYear = str(pd.to_datetime(asOfDate) - pd.DateOffset(years=1))
 
@@ -107,9 +106,10 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
         claim_df[column_name] = claim_df['personId'].apply(lambda x: True if x in selected_personId else False)
         col_types[column_name] = 'bool'
 
-    # rename as needed
+    # Rename as the model is case sensitive
     demo_df = demo_df.rename(columns={'gender': 'Gender', 'age': 'Age'})
 
+    # Merge the two input files on personId, keep all rows
     input_df = pd.merge(claim_df, demo_df, left_on='personId', right_on='personId', how='outer')
 
     # Getting the column order for the model

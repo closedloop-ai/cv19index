@@ -386,6 +386,7 @@ def do_run_claims(args):
 
         model = read_model(args.path_to_model)
         predictions = run_xgb_model(input_df, model)
+
         write_xgb_predictions(predictions)
     else:
         logger.error(f"{args.model} is not a valid model type. valid models are xgboost.")
