@@ -53,9 +53,9 @@ def cleanICD10Syntax(code):
         code
 
 
-def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: pd.datetime = pd.to_datetime('2018-06-01')):
+def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: pd.datetime):
     DIAGNOSIS_COLS = ['dx1', 'dx2', 'dx3', 'dx4', 'dx5', 'dx6', 'dx7', 'dx8', 'dx9', 'dx10', 'dx11', 'dx12', 'dx13',
-                      'dx14', 'dx15', 'dxE1']
+                      'dx14', 'dx15']
 
     logger.info(f"Beginning claim data frame preprocessing, raw data frame as follows.")
     logger.info(claim_df.head(5))

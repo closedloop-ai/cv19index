@@ -77,13 +77,19 @@ pip install cv19index
 To execute the xgboost model.
 
 ```bash
-cv19index input.csv output.csv
+cv19index demographics.csv cliams.csv output.csv
 ```
 
-Using the provided example data files.
+Using the provided example data files. If you don't provide an output file name it will provide a default one. 
 
 ```bash
-cv19index examples/xgboost/example_input.csv examples/xgboost/example_prediction.csv
+cv19index examples/data/claims.csv examples/data/demographics.csv
+```
+
+By cloning this repository and running test.py
+
+```bash
+python3 test.py
 ```
 
 Using from within python using a pandas dataframe as input and get the predictions out as a pandas dataframe.

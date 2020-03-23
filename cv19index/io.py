@@ -103,22 +103,13 @@ def read_csv(fpath: str, dtypes: Dict) -> pd.DataFrame:
             return "float64"
         return x
 
-    adj_dtypes = {k: adj_type(x) for k, x in dtypes.items()}
-
     df = pd.read_csv(
         fpath,
         header=0,
-        dtypes=adj_dtypes,
-        parse_dates=date_cols,
         na_values=na_values,
+        index_col=False,
         keep_default_na=False,
     )
-
-    # Now go back and fix all the ints (which we read in as floats to handle NAs)
-    df = df.fillna(0)
-    for k, x in dtypes.items():
-        if x == "float64":
-            df[k] = df[k].astype('int64')
 
     # Oh, and if there are date/datetime types that are empty, pandas "helps us out"
     # by converting those to an int(0) instead of None.
