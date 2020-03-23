@@ -1,7 +1,7 @@
 import json
 import logging
 import math
-import re
+import regex as re
 from datetime import datetime
 
 import numpy as np
@@ -83,7 +83,7 @@ def preprocess_claim(claim_df: pd.DataFrame, asOfDate: pd.datetime = pd.to_datet
     claim_df = claim_df.fillna(0)
 
     # rename as needed
-    claim_df = claim_df.rename(columns={'gender': 'Gender'})
+    claim_df = claim_df.rename(columns={'gender': 'Gender', 'age': 'Age'})
 
     # Cleaning the diagnosis codoes apply to tall the dx cols
     for column in DIAGNOSIS_COLS:
@@ -98,20 +98,21 @@ def preprocess_claim(claim_df: pd.DataFrame, asOfDate: pd.datetime = pd.to_datet
         # Getting the codes
         codes = edges_df[edges_df['parent'].str.contains(CCSR)]
         selected_claim = claim_df[claim_df.isin(codes['code'].values).any(axis=1)]['personId'].values
-        selected_personId = np.unique(np.concatenate(selected_claim))
+        selected_personId = np.unique(selected_claim)
 
         # Assigning the diagnosis flag to ther person
         description = re.sub("[^\P{P}-/']+", "_", description.replace(")", ""))
         column_name = "Diagnosis of " + description + " in the previous 12 months"
         claim_df[column_name] = claim_df['personId'].apply(lambda x: True if x in selected_personId else False)
 
-    # Getting the column order for the model
-    with open(resource_filename("cv19index", "resources/xgboost/input.csv.schema.json")) as f:
-        column_order = [item['name'] for item in json.load(f)['schema']]
-
-    # returning the needed features.
-    result = claim_df[column_order]
-
     logger.info(f"Preprocessing complete data frame as follows.")
-    logger.info(result.head(5))
-    logger.info(result.dtype)
+    logger.info(claim_df.head(5))
+    logger.info(claim_df.dtypes)
+
+    return claim_df
+
+
+def preprocess_demo(demo_df: pd.DataFrame):
+    # rename as needed
+    demo_df = demo_df.rename(columns={'gender': 'Gender', 'age': 'Age'})
+    return demo_df
