@@ -23,7 +23,7 @@ def read_model(fpath):
 
 def get_na_values(dtypes):
     # Pandas converts a string with "NA" as a real NaN/Null. We don't want this
-    # for real string columns. NA can show up as a real flag in customer data and
+    # for real string columns. NA can show up as a real flag in data and
     # it doesn't mean it should be treated as NaN/Null.
     def na_vals(x):
         # For now, only ignore NA conversion for strings. Structs/etc can still use it.
