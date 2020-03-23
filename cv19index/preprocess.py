@@ -107,7 +107,6 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
         claim_df[column_name] = claim_df['personId'].apply(lambda x: True if x in selected_personId else False)
         col_types[column_name] = 'bool'
 
-
     # rename as needed
     demo_df = demo_df.rename(columns={'gender': 'Gender', 'age': 'Age'})
 
@@ -120,9 +119,8 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
     # returning the needed features.
     input_df = input_df[column_order]
 
-    # bool type doesnt get set, force it on the model columns
+    # type doesnt get set, force it on the model columns
     input_df = input_df.astype(col_types)
-
 
     logger.info(f"Preprocessing complete data frame as follows.")
     logger.info(input_df.head(5))

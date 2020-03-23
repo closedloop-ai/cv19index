@@ -368,7 +368,6 @@ def do_run(
 
     if not run_df.empty:
         model = read_model(model_fpath)
-
         out = run_xgb_model(run_df, model, **kwargs)
         write_predictions(out, output_fpath)
     else:
@@ -383,6 +382,7 @@ def do_run_claims(args):
 
     if args.model == 'xgboost':
         input_df = preprocess_xgboost(claim_df, demo_df)
+        input_df = input_df.set_index('personId', drop=True)
 
         model = read_model(args.path_to_model)
         predictions = run_xgb_model(input_df, model)
