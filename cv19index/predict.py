@@ -6,10 +6,9 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from pkg_resources import resource_filename
 
 from .io import read_frame, read_model, write_predictions, read_claim, read_demo
-from .preprocess import apply_int_mapping
+from .preprocess import apply_int_mapping, preprocess_claim
 from .shap_top_factors import (
     append_empty_shap_columns,
     calculate_shap_percentile,
@@ -347,6 +346,14 @@ def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFra
     return predictions
 
 
+def write_xgb_predictions(predictions: pd.DataFrame):
+    summary_file = 'prediction_summary.csv'
+    output = predictions.to_csv(index=False, float_format="%f")
+
+    with open(summary_file, "wt") as fobj:
+        fobj.write(output)
+
+
 def do_run(
     input_fpath: str, schema_fpath: str, model_fpath: str, output_fpath: str, **kwargs
 ) -> None:
@@ -368,12 +375,17 @@ def do_run(
         write_predictions(run_df, output_fpath)
 
 
-def write_xgb_predictions(predictions: pd.DataFrame):
-    summary_file = 'prediction_summary.csv'
-    output = predictions.to_csv(index=False, float_format="%f")
+def do_run_claims(args):
+    demo_df = read_demo(args.demo)
+    claim_df = preprocess_claim(read_claim(args.claim))
+    input_df = demo_df.join(claim_df)
 
-    with open(summary_file, "wt") as fobj:
-        fobj.write(output)
+    if args.model == 'xgboost':
+        model = read_model(args.path_to_model)
+        predictions = run_xgb_model(input_df, model)
+        write_xgb_predictions(predictions)
+    else:
+        logger.error(f"{args.model} is not a valid model type. valid models are xgboost.")
 
 
 def parser():
@@ -390,13 +402,7 @@ def parser():
 
 def main():
     args = parser()
-    demo_df = read_demo(args.demo)
-    claim_df = read_claim(args.claim)
-    input_df = demo_df.join(claim_df)
+    do_run_claims(args)
 
-    if args.model == 'xgboost':
-        model = read_model(args.path_to_model)
-        predictions = run_xgb_model(input_df, model)
-        write_xgb_predictions(predictions)
-    else:
-        logger.error(f"{args.model} is not a valid model type. valid models are xgboost.")
+
+

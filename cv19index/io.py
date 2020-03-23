@@ -1,6 +1,7 @@
 # IO functions to read and write model and prediction files in an appropriate format.
 
 import json
+import logging
 import math
 import pickle
 from typing import Dict
@@ -10,6 +11,7 @@ from pkg_resources import resource_filename
 
 from .util import schema_dtypes
 
+logger = logging.getLogger(__name__)
 
 INDEX = 'personId'
 
@@ -19,21 +21,22 @@ def read_model(fpath):
         return pickle.load(fobj)
 
 
-def validate_df(df, dtype) -> pd.DataFrame:
-    """ Now verify that everything is exactly as it should be. """
-    print(df.columns, dtype)
-    incorrect_types = [
-        f"{n} expected {t} but was {df[n].dtype}"
-        for n, t in dtype.items()
-        if n != INDEX and df[n].dtype != t
-    ]
-    assert len(incorrect_types) == 0, f"Incorrect types:\n" + "\n".join(incorrect_types)
+def get_na_values(dtypes):
+    # Pandas converts a string with "NA" as a real NaN/Null. We don't want this
+    # for real string columns. NA can show up as a real flag in customer data and
+    # it doesn't mean it should be treated as NaN/Null.
+    def na_vals(x):
+        # For now, only ignore NA conversion for strings. Structs/etc can still use it.
+        if x in ("string", ):
+            return []
+        else:
+            return _NA_VALUES
 
-    return df
+    return {k: na_vals(v) for k, v in dtypes.items()}
 
 
 def read_claim(fpath: str) -> pd.DataFrame:
-    schame_fpath = resource_filename("cv19index","resources/xgboost/claims.schema.json")
+    schame_fpath = resource_filename("cv19index", "resources/xgboost/claims.schema.json")
     return read_frame(fpath, schame_fpath)
 
 
@@ -50,14 +53,14 @@ def read_frame(fpath, schema_fpath) -> pd.DataFrame:
 
     with open(schema_fpath) as f:
         schema = json.load(f)
-    dtype = schema_dtypes(schema["schema"])
+    dtypes = schema_dtypes(schema["schema"])
 
     if is_excel(fpath):
-        df = read_excel(fpath, dtype)
+        df = read_excel(fpath, dtypes)
     elif fpath.endswith(".parquet"):
-        df = read_parquet(fpath, dtype)
+        df = read_parquet(fpath, dtypes)
     elif fpath.endswith(".csv"):
-        df = read_csv(fpath, dtype)
+        df = read_csv(fpath, dtypes)
     else:
         raise TypeError(f'This script reads files based the extension.\n'
                         f'The known extensions are {", ".join(XLS)}, .parquet, .csv'
@@ -66,59 +69,56 @@ def read_frame(fpath, schema_fpath) -> pd.DataFrame:
     return df
 
 
-def read_excel(fpath, dtype) -> pd.DataFrame:
-    print(fpath, INDEX, dtype)
-    df = pd.read_excel(fpath, dtype=dtype, index_col=INDEX)
+def read_excel(fpath, dtypes) -> pd.DataFrame:
+    date_cols = [k for k, v in dtypes.items() if v == "datetime"]
+    na_values = get_na_values(dtypes)
 
-    print(df.head(10))
+    df = pd.read_excel(
+        fpath,
+        header=0,
+        dtypes=dtypes,
+        parse_dates=date_cols,
+        na_values=na_values,
+        keep_default_na=False
+    )
 
-    return validate_df(df, dtype)
+    return df
 
 
-def read_parquet(fpath, dtype) -> pd.DataFrame:
+def read_parquet(fpath, dtypes) -> pd.DataFrame:
     df = pd.read_parquet(fpath)
     # Now set the index.
     df = df.set_index(INDEX)
-    return validate_df(df, dtype)
+    return df
 
 
-def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
+def read_csv(fpath: str, dtypes: Dict) -> pd.DataFrame:
 
-    date_cols = [k for k, v in dtype.items() if v == "datetime"]
+    date_cols = [k for k, v in dtypes.items() if v == "datetime"]
+    na_values = get_na_values(dtypes)
 
-    # Pandas converts a string with "NA" as a real NaN/Null. We don't want this
-    # for real string columns. NA can show up as a real flag in customer data and
-    # it doesn't mean it should be treated as NaN/Null.
-    def na_vals(x):
-        # For now, only ignore NA conversion for strings. Structs/etc can still use it.
-        if x["dataType"]["dataType"] in ("string"):
-            return []
-        else:
-            return _NA_VALUES
+    # Pandas won't read in ints with NA values, so read those in as floats.
+    def adj_type(x):
+        if x == "int32" or x == "int64":
+            return "float64"
+        return x
 
-    na_values = {k: na_vals(v) for k, v in dtype.items()}
+    adj_dtypes = {k: adj_type(x) for k, x in dtypes.items()}
 
-    # Pandas read_csv ignores the dtype for the index column,
-    # so we don't read in with an index column.  Set it later.
     df = pd.read_csv(
         fpath,
         header=0,
-        names=list(dtype.keys()),
-        dtype=dtype,
+        dtypes=adj_dtypes,
         parse_dates=date_cols,
-        na_values=na_values
+        na_values=na_values,
+        keep_default_na=False,
     )
 
     # Now go back and fix all the ints (which we read in as floats to handle NAs)
     df = df.fillna(0)
-    for k, x in dtype.items():
+    for k, x in dtypes.items():
         if x == "float64":
             df[k] = df[k].astype('int64')
-
-    # Sometimes pandas doesn't pay attention to the type we give it.
-    # Go back and ask it to really make every column be what we asked.
-    for n, t in dtype.items():
-        df[n] = df[n].astype(t)
 
     # Oh, and if there are date/datetime types that are empty, pandas "helps us out"
     # by converting those to an int(0) instead of None.
@@ -126,9 +126,7 @@ def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
     for c in date_cols:
         df.loc[df[c] == 0, [c]] = None
 
-    # Now set the index.
-    df = df.set_index(INDEX, drop=True)
-    return validate_df(df, dtype)
+    return df
 
 
 def write_predictions(predictions, fpath):
@@ -136,7 +134,7 @@ def write_predictions(predictions, fpath):
         output = predictions.to_csv(index=False, float_format="%f")
     elif fpath.endswith(".json"):
         if (
-            predictions.index.dtype == "object"
+            predictions.index.dtypes == "object"
             and predictions.index.size > 0
             and type(predictions.index[0]) == list
         ):
@@ -148,7 +146,7 @@ def write_predictions(predictions, fpath):
         # fail if called with an index that is an array, which happens with
         # compound ids.  Since writing "records" doesn't write the index, we
         # throw it away.
-        if predictions.index.dtype == "object":
+        if predictions.index.dtypes == "object":
             predictions = predictions.reset_index(drop=True)
         output = predictions.to_json(orient="records", lines=True, double_precision=3)
     else:

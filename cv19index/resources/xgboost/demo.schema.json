@@ -10,14 +10,14 @@
     {
       "name": "gender",
       "dataType": {
-        "dataType": "double",
+        "dataType": "integer",
         "metadata": {}
       }
     },
     {
       "name": "age",
       "dataType": {
-        "dataType": "double",
+        "dataType": "integer",
         "metadata": {}
       }
     }
