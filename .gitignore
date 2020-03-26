@@ -8,3 +8,4 @@ tmp
 build
 dist
 venv/
+/junk.ipynb

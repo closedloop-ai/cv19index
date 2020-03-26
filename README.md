@@ -1,3 +1,6 @@
+> Join us for our webinar on the CV19 Index Friday March 20, 2020 at 2PM central time.
+> Registration: https://zoom.us/webinar/register/WN_E6k2QwTuSl6O-rrfaH3PVA
+
 # The COVID-19 Vulnerability Index (CV19 Index)
 
 This repository contains the source code, models, and example usage of the COVID-19 Vulnerability Index (CV19 Index).  The CV19 Index is a predictive model that identifies people who are likely to have a heightened vulnerability to severe complications from COVID-19 (commonly referred to as “The Coronavirus”).  The CV19 Index is intended to help hospitals, federal / state / local public health agencies and other healthcare organizations in their work to identify, plan for, respond to, and reduce the impact of COVID-19 in their communities.
@@ -100,3 +103,14 @@ model_fpath = resource_filename("cv19index", "resources/xgboost/model.pickle")
 model = read_model(model_fpath)
 predictions_df = run_model(input_df, model)
 ```
+
+## Contributing to the CV19 Index
+
+We are not allowed to share the data used to train the models and build the index iwth our collaborators, but there are tons of ways you can help.  If you are interested in participating, please contact us at covid19-info@closedloop.ai  
+
+A few examples are:
+* Helping us build mappings from common claims data formats for this predictor, such as OMAP and CCLF.  https://www.ohdsi.org/data-standardization/the-common-data-model/
+* Converting CMS BlueBUtton data into a format usable by this model: https://https://bluebutton.cms.gov/  
+* Providing install instructions and support on more platforms.
+
+
