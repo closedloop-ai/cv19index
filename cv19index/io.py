@@ -69,14 +69,14 @@ def read_frame(fpath, schema_fpath) -> pd.DataFrame:
     return df
 
 
-def read_excel(fpath, dtypes) -> pd.DataFrame:
-    date_cols = [k for k, v in dtypes.items() if v == "datetime"]
-    na_values = get_na_values(dtypes)
+def read_excel(fpath, dtype) -> pd.DataFrame:
+    date_cols = [k for k, v in dtype.items() if v == "datetime"]
+    na_values = get_na_values(dtype)
 
     df = pd.read_excel(
         fpath,
         header=0,
-        dtypes=dtypes,
+        dtype=dtype,
         parse_dates=date_cols,
         na_values=na_values,
         keep_default_na=False
@@ -85,17 +85,17 @@ def read_excel(fpath, dtypes) -> pd.DataFrame:
     return df
 
 
-def read_parquet(fpath, dtypes) -> pd.DataFrame:
+def read_parquet(fpath, dtype) -> pd.DataFrame:
     df = pd.read_parquet(fpath)
     # Now set the index.
     df = df.set_index(INDEX)
     return df
 
 
-def read_csv(fpath: str, dtypes: Dict) -> pd.DataFrame:
+def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
 
-    date_cols = [k for k, v in dtypes.items() if v == "datetime"]
-    na_values = get_na_values(dtypes)
+    date_cols = [k for k, v in dtype.items() if v == "datetime"]
+    na_values = get_na_values(dtype)
 
     # Pandas won't read in ints with NA values, so read those in as floats.
     def adj_type(x):
