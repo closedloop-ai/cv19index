@@ -1,16 +1,17 @@
 import argparse
+import json
 import logging
 import math
-import pathlib
 from typing import Any, Dict, List, Tuple
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
 import xgboost as xgb
 from pkg_resources import resource_filename
 
-from .io import read_frame, read_model, write_predictions
-from .preprocess import apply_int_mapping
+from .io import read_frame, read_model, write_predictions, read_claim, read_demo
+from .preprocess import apply_int_mapping, preprocess_xgboost
 from .shap_top_factors import (
     append_empty_shap_columns,
     calculate_shap_percentile,
@@ -37,7 +38,7 @@ def clean_floats(d: pd.DataFrame):
 
 
 def rescale_predictions(
-    predictions: np.ndarray, train_data_stats: Dict[str, Any]
+        predictions: np.ndarray, train_data_stats: Dict[str, Any]
 ) -> np.ndarray:
     """
     Function to rescale model predictions s.t. they correspond to probabilities.
@@ -80,16 +81,16 @@ def rescale_predictions(
 
 
 def perform_predictions(
-    df: pd.DataFrame,
-    xmatrix: xgb.DMatrix,
-    label: np.ndarray,
-    predictor: Dict[str, Any],
-    recompute_distribution: bool,
-    shap_score_99: float = None,
-    shap_cutoff: float = 0.02,
-    compute_factors: bool = True,
-    factor_cutoff: float = None,
-    **kwargs,
+        df: pd.DataFrame,
+        xmatrix: xgb.DMatrix,
+        label: np.ndarray,
+        predictor: Dict[str, Any],
+        recompute_distribution: bool,
+        shap_score_99: float = None,
+        shap_cutoff: float = 0.02,
+        compute_factors: bool = True,
+        factor_cutoff: float = None,
+        **kwargs,
 ) -> Tuple[pd.DataFrame, List[float], float, float]:
     """
     Args:
@@ -156,7 +157,7 @@ def perform_predictions(
                 df_cutoff, model, outcome_column, mapping, **kwargs
             )
             logger.info(
-                f"Computed SHAP scores for top {100*factor_cutoff}% of predictions"
+                f"Computed SHAP scores for top {100 * factor_cutoff}% of predictions"
                 f" resulting in {top_factors.shape[0]} scores."
             )
             prediction_result = prediction_result.join(top_factors)
@@ -203,60 +204,60 @@ def perform_predictions(
         ].apply(filter_rows_with_index, args=(shap_cutoff,))
 
         prediction_result["neg_shap_scores_w"] = (
-            prediction_result["neg_shap_scores"] / shap_score_99
+                prediction_result["neg_shap_scores"] / shap_score_99
         )
         prediction_result["pos_shap_scores_w"] = (
-            prediction_result["pos_shap_scores"] / shap_score_99
+                prediction_result["pos_shap_scores"] / shap_score_99
         )
 
         prediction_result["neg_shap_scores"] = (
             reset_multiindex(prediction_result)[["neg_shap_scores", "neg_index_filter"]]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
         prediction_result["neg_shap_scores_w"] = (
             reset_multiindex(prediction_result)[
                 ["neg_shap_scores_w", "neg_index_filter"]
             ]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
         prediction_result["neg_factors"] = (
             reset_multiindex(prediction_result)[["neg_factors", "neg_index_filter"]]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
         prediction_result["neg_patient_values"] = (
             reset_multiindex(prediction_result)[
                 ["neg_patient_values", "neg_index_filter"]
             ]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
 
         prediction_result["pos_shap_scores"] = (
             reset_multiindex(prediction_result)[["pos_shap_scores", "pos_index_filter"]]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
         prediction_result["pos_shap_scores_w"] = (
             reset_multiindex(prediction_result)[
                 ["pos_shap_scores_w", "pos_index_filter"]
             ]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
         prediction_result["pos_factors"] = (
             reset_multiindex(prediction_result)[["pos_factors", "pos_index_filter"]]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
         prediction_result["pos_patient_values"] = (
             reset_multiindex(prediction_result)[
                 ["pos_patient_values", "pos_index_filter"]
             ]
-            .apply(lambda x: select_index(*x), axis=1)
-            .values
+                .apply(lambda x: select_index(*x), axis=1)
+                .values
         )
 
         prediction_result = prediction_result.drop(
@@ -268,8 +269,40 @@ def perform_predictions(
     return prediction_result, prediction_quantiles, shap_base_value, shap_score_99
 
 
+def flatten_predictions(prediction: pd.DataFrame):
+    def make_col_names(name):
+        for i in range(10):
+            yield f"{name}_{i+1}"
+
+    cols_to_flatten = ['neg_factors', 'neg_patient_values', 'neg_shap_scores',
+                       'pos_factors', 'pos_patient_values', 'pos_shap_scores',
+                       'pos_shap_scores_w', 'neg_shap_scores_w']
+
+    flat_preds = prediction.copy()
+    flat_preds = flat_preds.drop(cols_to_flatten, axis=1)
+
+    # drop the last two columns are
+    cols_to_flatten = cols_to_flatten[:-2]
+
+    to_flatten = prediction[cols_to_flatten]
+    header = ['personId']
+    header.extend((fname for name in cols_to_flatten for fname in make_col_names(name)))
+    flattened = []
+    for idx, row in to_flatten.iterrows():
+        out_row = [idx]
+        for col in cols_to_flatten:
+            for val in row[col]:
+                out_row.append(val)
+
+        flattened.append(out_row)
+
+    out_df = pd.DataFrame(flattened, columns=header)
+    flat_preds = pd.merge(flat_preds, out_df, left_on='personId', right_on='personId', how='outer')
+    return flat_preds
+
+
 def get_quantiles(
-    predictions: np.ndarray, predictor: Dict[str, Any], recompute_distribution: bool
+        predictions: np.ndarray, predictor: Dict[str, Any], recompute_distribution: bool
 ) -> List[float]:
     """
     Helper to get the quantiles of a prediction DataFrame
@@ -299,7 +332,21 @@ def get_agg_preds(val_to_preds: Dict[str, Any]) -> pd.DataFrame:
     return agg_preds
 
 
-def run_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
+def reorder_inputs(df_inputs: pd.DataFrame, predictor: Dict[str, Any]) -> pd.DataFrame:
+    """This code reorders in the input data frame columns to match the expected order
+    from training. If the lists of columns don't match, no error is raised, as this
+    will cause issues later."""
+    if set(predictor["model"].feature_names) == set(df_inputs.columns) and predictor[
+        "model"
+    ].feature_names != list(df_inputs.columns):
+        logger.info("Reordering test inputs to match training.")
+        return df_inputs.loc[:, predictor["model"].feature_names]
+    return df_inputs
+
+
+def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
+    import xgboost as xgb
+
     df_inputs = apply_int_mapping(
         predictor["mapping"], run_df, error_unknown_values=False
     )
@@ -334,53 +381,64 @@ def run_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
     return predictions
 
 
-def reorder_inputs(df_inputs: pd.DataFrame, predictor: Dict[str, Any]) -> pd.DataFrame:
-    """This code reorders in the input data frame columns to match the expected order
-    from training. If the lists of columns don't match, no error is raised, as this
-    will cause issues later."""
-    if set(predictor["model"].feature_names) == set(df_inputs.columns) and predictor[
-        "model"
-    ].feature_names != list(df_inputs.columns):
-        logger.info("Reordering test inputs to match training.")
-        return df_inputs.loc[:, predictor["model"].feature_names]
-    return df_inputs
+def write_xgb_predictions(predictions: pd.DataFrame, summary_file):
+    predictions = flatten_predictions(predictions)
+    output = predictions.to_csv(index=False, float_format="%f")
+
+    with open(summary_file, "wt") as fobj:
+        fobj.write(output)
 
 
 def do_run(
-    input_fpath: str, schema_fpath: str, model_fpath: str, output_fpath: str, **kwargs
+        input_fpath: str, schema_fpath: str, model_fpath: str, output_fpath: str, **kwargs
 ) -> None:
     """
     Read in a trained model, creating predictions for the data located at the input path
     writes out predictions.
     """
     logger.info(f"Running {model_fpath} using {input_fpath} to {output_fpath}")
-    run_df = read_frame(input_fpath, schema_fpath, empty_ok=True)
+    run_df = read_frame(input_fpath, schema_fpath)
 
     if not run_df.empty:
         model = read_model(model_fpath)
-
-        out = run_model(run_df, model, **kwargs)
+        out = run_xgb_model(run_df, model, **kwargs)
         write_predictions(out, output_fpath)
     else:
-        #: If there are no inputs to run predictions on, bypass
-        #: executing the model and output an successful empty file.
+        # If there are no inputs to run predictions on, bypass
+        # executing the model and output an successful empty file.
         write_predictions(run_df, output_fpath)
 
 
-def main():
+def do_run_claims(fdemo, fclaim, path_to_model, output, model_type, asOfDate):
+    demo_df = read_demo(fdemo)
+    claim_df = read_claim(fclaim)
+
+    if model_type == 'xgboost':
+        input_df = preprocess_xgboost(claim_df, demo_df, asOfDate)
+        input_df = input_df.set_index('personId', drop=True)
+
+        model = read_model(path_to_model)
+        predictions = run_xgb_model(input_df, model)
+
+        write_xgb_predictions(predictions, output)
+    else:
+        logger.error(f"{model_type} is not a valid model type. valid models are xgboost.")
+
+
+def parser():
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("input")
-    parser.add_argument("output")
+    parser.add_argument("demographics")
+    parser.add_argument("claim")
+    parser.add_argument("output", default=f'{datetime.now().strftime("%Y-%M-%dT%H:%m:%S")}-prediction_summary.csv')
     parser.add_argument("-m", "--model", choices=["xgboost"], default="xgboost")
+    parser.add_argument("-p", "--path-to-model", default="cv19index/resources/xgboost/model.pickle")
+    parser.add_argument("-a", "--as-of-date", default=pd.to_datetime(datetime.now().isoformat()))
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    if args.model == "xgboost":
-        model = resource_filename("cv19index", "resources/xgboost/model.pickle")
-        schema = resource_filename(
-            "cv19index", "resources/xgboost/input.csv.schema.json"
-        )
 
-    do_run(args.input, schema, model, args.output)
+def main():
+    args = parser()
+    do_run_claims(args.demographics, args.fclaim, args.path_to_model, args.output, args.model)

@@ -7,4 +7,5 @@ tmp
 *.egg-info
 build
 dist
+venv/
 /junk.ipynb

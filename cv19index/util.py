@@ -21,7 +21,10 @@ class UserException(Exception):
     """Raise for exceptions that indicate bad input """
 
 
-def schema_dtypes(schema_json: list, dtype_dict: dict = _defaultDtypeDict):
+def schema_dtypes(schema_json: list, dtype_dict=None):
+    if dtype_dict is None:
+        dtype_dict = _defaultDtypeDict
+
     def lookup(x):
         t = dtype_dict.get(x["dataType"]["dataType"])
         assert len(t) > 0
@@ -33,11 +36,7 @@ def schema_dtypes(schema_json: list, dtype_dict: dict = _defaultDtypeDict):
 def nonnull_column(s: pd.Series):
     """ Takes a pandas Series and return sa vector of all entries that have 
     values (are not None or float.nan).
-	
-    :param s: The pandas Series
-	:return: A numpy array of the same shape as the series with true entries 
-        for all valid values.
-	"""
+    """
     if s.dtype == float:
         return np.logical_not(np.isnan(s))
     else:

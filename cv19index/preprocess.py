@@ -1,8 +1,12 @@
+import json
 import logging
 import math
+import regex as re
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
+from pkg_resources import resource_filename
 
 from .util import none_or_nan, nonnull_column
 
@@ -32,7 +36,7 @@ def apply_int_mapping(mapping, data, error_unknown_values=True):
 
         # Check if any non-null values in the original array are not mapped
         if error_unknown_values and np.any(
-            np.logical_and(np.isnan(ret[col]), nonnull_column(data[col]))
+                np.logical_and(np.isnan(ret[col]), nonnull_column(data[col]))
         ):
             raise ValueError(
                 f"Column '{col}' had invalid values:"
@@ -40,3 +44,86 @@ def apply_int_mapping(mapping, data, error_unknown_values=True):
                 f"  Valid values are {set(value_map.keys())}"
             )
     return ret
+
+
+def cleanICD10Syntax(code):
+    if len(code) > 3 and '.' not in code:
+        return code[:3] + '.' + code[3:]
+    else:
+        code
+
+
+def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: pd.datetime):
+    DIAGNOSIS_COLS = ['dx1', 'dx2', 'dx3', 'dx4', 'dx5', 'dx6', 'dx7', 'dx8', 'dx9', 'dx10', 'dx11', 'dx12', 'dx13',
+                      'dx14', 'dx15']
+
+    logger.info(f"Beginning claim data frame preprocessing, raw data frame as follows.")
+    logger.info(claim_df.head(5))
+    logger.info(claim_df.dtypes)
+
+    asOfPastYear = str(pd.to_datetime(asOfDate) - pd.DateOffset(years=1))
+
+    # limit to last year of claims
+    claim_df = claim_df[(asOfPastYear <= pd.to_datetime(claim_df['admitDate']))
+                        & (pd.to_datetime(claim_df['admitDate']) <= asOfDate)]
+
+    # total numbers of days in the ER
+    er_visit = claim_df[claim_df['erVisit'] == True][['personId', 'admitDate']].groupby(
+        'personId').admitDate.nunique().reset_index()
+    er_visit = er_visit.rename(columns={'admitDate': '# of Admissions (12M)'})
+    claim_df = pd.merge(claim_df, er_visit, left_on='personId', right_on='personId', how='left')
+    claim_df['# of ER Visits (12M)'] = claim_df['# of Admissions (12M)']
+
+    # days from admit to discharge
+    claim_df['Inpatient Days'] = claim_df[['dischargeDate', 'admitDate']].apply(
+        lambda x: (pd.to_datetime(x.dischargeDate) - pd.to_datetime(x.admitDate)).days, axis=1)
+
+    # fix na values
+    claim_df = claim_df.fillna(0)
+
+    # rename as needed
+    claim_df = claim_df.rename(columns={'gender': 'Gender', 'age': 'Age'})
+
+    # Cleaning the diagnosis codoes apply to tall the dx cols
+    for column in DIAGNOSIS_COLS:
+        claim_df[column] = claim_df[column].apply(lambda x: cleanICD10Syntax(str(x)))
+
+    nodes = pd.read_csv(resource_filename('cv19index', 'resources/ccsrNodes.txt'))
+    edges_df = pd.read_csv(resource_filename('cv19index', 'resources/ccsrEdges.txt'))
+    edges_df['code'] = edges_df['child'].apply(lambda x: x.split(':')[1])
+
+    # Generating features for each node
+    col_types = {}
+    for CCSR, description in nodes.values:
+        # Getting the codes
+        codes = edges_df[edges_df['parent'].str.contains(CCSR)]
+        selected_claim = claim_df[claim_df.isin(codes['code'].values).any(axis=1)]['personId'].values
+        selected_personId = np.unique(selected_claim)
+
+        # Assigning the diagnosis flag to ther person
+        description = re.sub("[^\P{P}-/']+", "_", description.replace(")", ""))
+        column_name = "Diagnosis of " + description + " in the previous 12 months"
+        claim_df[column_name] = claim_df['personId'].apply(lambda x: True if x in selected_personId else False)
+        col_types[column_name] = 'bool'
+
+    # Rename as the model is case sensitive
+    demo_df = demo_df.rename(columns={'gender': 'Gender', 'age': 'Age'})
+
+    # Merge the two input files on personId, keep all rows
+    input_df = pd.merge(claim_df, demo_df, left_on='personId', right_on='personId', how='outer')
+
+    # Getting the column order for the model
+    with open(resource_filename("cv19index", "resources/xgboost/input.csv.schema.json")) as f:
+        column_order = [item['name'] for item in json.load(f)['schema']]
+
+    # returning the needed features.
+    input_df = input_df[column_order]
+
+    # type doesnt get set, force it on the model columns
+    input_df = input_df.astype(col_types)
+
+    logger.info(f"Preprocessing complete data frame as follows.")
+    logger.info(input_df.head(5))
+    logger.info(input_df.dtypes)
+
+    return input_df

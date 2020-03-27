@@ -32,6 +32,8 @@ setup(
     zip_safe=False,
     package_data={
         "cv19index": [
+            "resources/xgboost/demo.schema.json",
+            "resources/xgboost/claims.schema.json",
             "resources/xgboost/input.csv.schema.json",
             "resources/xgboost/model.pickle",
             "resources/ccsrEdges.txt",
@@ -52,5 +54,6 @@ setup(
         "shap==0.33",
         "xgboost==1.0.1",
         "flask==1.1.1",
+        "regex==2020.2.20"
     ],
 )
