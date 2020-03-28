@@ -8,7 +8,7 @@ README = (HERE / "README.md").read_text("utf-8")
 
 setup(
     name="cv19index",
-    version="1.0.1",
+    version="1.0.2",
     description="COVID-19 Vulnerability Index",
     long_description=README,
     long_description_content_type="text/markdown",
