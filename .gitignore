@@ -9,3 +9,6 @@ build
 dist
 venv/
 /junk.ipynb
+cv19index/resources/xgboost/output.csv
+cv19index/resources/xgboost/example_input.csv
+pytest.xml
