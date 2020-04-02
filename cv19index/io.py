@@ -41,7 +41,7 @@ def read_claim(fpath: str) -> pd.DataFrame:
 
 
 def read_demo(fpath: str) -> pd.DataFrame:
-    schema_fpath = resource_filename("cv19index", "resources/xgboost/demo.schema.json")
+    schema_fpath = resource_filename("cv19index", "resources/xgboost/demographics.schema.json")
     return read_frame(fpath, schema_fpath)
 
 
