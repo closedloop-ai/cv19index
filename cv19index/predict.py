@@ -10,7 +10,7 @@ import pandas as pd
 import xgboost as xgb
 from pkg_resources import resource_filename
 
-from .io import read_frame, read_model, write_predictions, read_claim, read_demo
+from .io import read_frame, read_model, write_predictions, read_claim, read_demographics
 from .preprocess import apply_int_mapping, preprocess_xgboost
 from .shap_top_factors import (
     append_empty_shap_columns,
@@ -410,7 +410,7 @@ def do_run(
 
 
 def do_run_claims(fdemo, fclaim, path_to_model, output, model_type, asOfDate):
-    demo_df = read_demo(fdemo)
+    demo_df = read_demographics(fdemo)
     claim_df = read_claim(fclaim)
 
     if model_type == 'xgboost':
