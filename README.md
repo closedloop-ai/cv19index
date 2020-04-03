@@ -69,6 +69,8 @@ See the example [Jupyter notebook](examples/Tutorial.ipynb) for a description of
 
 An [Jupyter notebook](examples/Tutorial.ipynb) with a worked example showing how to prep a data set is provided in the [examples](examples) folder.  This folder begins with a sample set of claims data and performs the necessary transformations to generate the input to the model.
 
+Additionally the model uses 0 for female and 1 for male in the gender column.
+
 ### PyPI Install
 
 ```bash
