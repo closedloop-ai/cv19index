@@ -1,5 +1,4 @@
-> Join us for our webinar on the CV19 Index Friday March 20, 2020 at 2PM central time.
-> Registration: https://zoom.us/webinar/register/WN_E6k2QwTuSl6O-rrfaH3PVA
+> [Join us for our webinar](https://closedloop.ai/cv19index-webinar) on the CV19 Index on Wednesday, April 8th, 2020 from 2:00 – 3:00pm CDT.
 
 # The COVID-19 Vulnerability Index (CV19 Index)
 
