@@ -8,7 +8,7 @@ README = (HERE / "README.md").read_text("utf-8")
 
 setup(
     name="cv19index",
-    version="1.0.2",
+    version="1.1.0",
     description="COVID-19 Vulnerability Index",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -48,13 +48,13 @@ setup(
         ]
     },
     install_requires=[
-        "numpy==1.17.4",
-        "pandas==0.23.4",
-        "setuptools==40.2.0",
-        "shap==0.33",
-        "xgboost==1.0.1",
-        "flask==1.1.1",
-        "regex==2020.2.20",
+        "numpy>=1.17.4",
+        "pandas>=0.23.4",
+        "setuptools>=40.2.0",
+        "shap>=0.33",
+        "xgboost>=1.0.1",
+        "flask>=1.1.1",
+        "regex>=2020.2.20",
         "xlrd >= 0.9.0"
     ],
 )
