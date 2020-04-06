@@ -1,0 +1,132 @@
+{
+  "schema": [
+    {
+      "name": "personId",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    },
+     {
+      "name": "admitDate",
+      "dataType": {
+        "dataType": "date",
+        "metadata": {}
+      }
+    }, {
+      "name": "dischargeDate",
+      "dataType": {
+        "dataType": "date",
+        "metadata": {}
+      }
+    }, {
+      "name": "erVisit",
+      "dataType": {
+        "dataType": "boolean",
+        "metadata": {}
+      }
+    }, {
+      "name": "inpatient",
+      "dataType": {
+        "dataType": "boolean",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx1",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx2",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx3",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx4",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx5",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx6",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx7",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx8",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx8",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx9",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx10",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx11",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx12",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx13",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx14",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }, {
+      "name": "dx15",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    }
+  ]
+}
