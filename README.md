@@ -6,6 +6,7 @@ __With the 1.1.0 release, the CV19 Index can now make predictions for any adult.
 
 # The COVID-19 Vulnerability Index (CV19 Index)
 
+[![Ion Channel Status](https://api.ionchannel.io/v1/report/getBadge?project_id=1166459a-15fe-420b-856f-874e612b08a6&branch=master)](http://console.ionchannel.io/)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![PyPI version](https://badge.fury.io/py/cv19index.svg)](https://pypi.python.org/pypi/cv19index/)
 ![Release](https://img.shields.io/github/release/closedloop-ai/cv19index/all.svg)
