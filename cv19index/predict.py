@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import math
+import urllib
 from typing import Any, Dict, List, Tuple
 from datetime import datetime
 
@@ -18,8 +19,7 @@ from .shap_top_factors import (
     filter_rows_with_index,
     generate_shap_top_factors,
     reset_multiindex,
-    select_index,
-    shap_score_to_percentile,
+    select_index
 )
 
 logger = logging.getLogger(__file__)
@@ -93,20 +93,20 @@ def perform_predictions(
         **kwargs,
 ) -> Tuple[pd.DataFrame, List[float], float, float]:
     """
+    Build predictions from a trained model, additionally build shap scores and quantiles
+
     Args:
         compute_factors_at_cutoff: float (0, 1], only compute SHAP for rows
         beyond this cutoff after sorted by prediction
+
+    return prediction DataFrame, quantiles, shap_base_value, shap_score_99
     """
     outcome_column = predictor["outcome_column"]
     mapping = predictor["mapping"]
     model = predictor["model"]
-    """
-    Build predictions from a trained model, additionally build shap scores and quantiles
-
-    return prediction DataFrame, quantiles, shap_base_value, shap_score_99
-    """
 
     predictions = model.predict(xmatrix)
+    assert len(predictions) == df.shape[0]
 
     # rescale the predictions if model used scale_pos_weight_flag
     if predictor["predictor_type"] == "classification":
@@ -145,6 +145,8 @@ def perform_predictions(
         pred_dict[outcome_column] = label
     prediction_result = pd.DataFrame(pred_dict, index=df.index)
 
+    assert prediction_result.shape[0] == df.shape[0]
+
     # compute top factors and "base value" using SHAP technique
     top_factors, shap_base_value = (None, None)
     if compute_factors:
@@ -153,14 +155,19 @@ def perform_predictions(
                 int(100 * (1 - factor_cutoff))
             ]
             df_cutoff = df[predictions >= compute_factors_cutoff_val]
+            #logger.info(f"Cutoff df: {df_cutoff}")
             top_factors, shap_base_value = generate_shap_top_factors(
                 df_cutoff, model, outcome_column, mapping, **kwargs
             )
+            assert top_factors.shape[0] == df.shape[0], f"Found: {top_factors.shape[0]} Expected: {df.shape[0]}"
             logger.info(
                 f"Computed SHAP scores for top {100 * factor_cutoff}% of predictions"
                 f" resulting in {top_factors.shape[0]} scores."
             )
+            assert prediction_result.shape[0] == df.shape[0]
             prediction_result = prediction_result.join(top_factors)
+            assert prediction_result.shape[0] == df.shape[0], f"Found: {prediction_result.shape[0]} Expected: {df.shape[0]}"
+
             empty_list = np.empty(shape=(0,))
             for col_name in top_factors.columns:
                 prediction_result[col_name] = prediction_result[col_name].apply(
@@ -195,6 +202,7 @@ def perform_predictions(
                 shap_score_99 = np.percentile(abs_shap_scores, 99)
 
         logger.info(f"Cutoff for SHAP values: {shap_cutoff}")
+        assert prediction_result.shape[0] == df.shape[0]
 
         prediction_result["neg_index_filter"] = prediction_result[
             "neg_shap_scores"
@@ -225,6 +233,7 @@ def perform_predictions(
         prediction_result["neg_factors"] = (
             reset_multiindex(prediction_result)[["neg_factors", "neg_index_filter"]]
                 .apply(lambda x: select_index(*x), axis=1)
+                .apply(lambda x: [urllib.parse.unquote(col) for col in x])
                 .values
         )
         prediction_result["neg_patient_values"] = (
@@ -250,6 +259,7 @@ def perform_predictions(
         prediction_result["pos_factors"] = (
             reset_multiindex(prediction_result)[["pos_factors", "pos_index_filter"]]
                 .apply(lambda x: select_index(*x), axis=1)
+                .apply(lambda x: [urllib.parse.unquote(col) for col in x])
                 .values
         )
         prediction_result["pos_patient_values"] = (
@@ -263,6 +273,7 @@ def perform_predictions(
         prediction_result = prediction_result.drop(
             columns=["neg_index_filter", "pos_index_filter"]
         )
+        assert prediction_result.shape[0] == df.shape[0]
     else:
         prediction_result = append_empty_shap_columns(prediction_result)
 
@@ -270,36 +281,22 @@ def perform_predictions(
 
 
 def flatten_predictions(prediction: pd.DataFrame):
-    def make_col_names(name):
-        for i in range(10):
-            yield f"{name}_{i+1}"
+    def extract_col(name, ix):
+        prediction[name].apply(lambda x: x[ix])
 
-    cols_to_flatten = ['neg_factors', 'neg_patient_values', 'neg_shap_scores',
-                       'pos_factors', 'pos_patient_values', 'pos_shap_scores',
-                       'pos_shap_scores_w', 'neg_shap_scores_w']
+    pos_cols_to_flatten = ['pos_factors', 'pos_patient_values', 'pos_shap_scores']
+    neg_cols_to_flatten = ['neg_factors', 'neg_patient_values', 'neg_shap_scores']
 
-    flat_preds = prediction.copy()
-    flat_preds = flat_preds.drop(cols_to_flatten, axis=1)
+    for i in range(10):
+        for name in pos_cols_to_flatten:
+            prediction[f"{name}_{i+1}"] = prediction[name].apply(lambda x: x[i] if i < len(x) else None)
+    for i in range(10):
+        for name in neg_cols_to_flatten:
+            prediction[f"{name}_{i+1}"] = prediction[name].apply(lambda x: x[i] if i < len(x) else None)
 
-    # drop the last two columns are
-    cols_to_flatten = cols_to_flatten[:-2]
-
-    to_flatten = prediction[cols_to_flatten]
-    header = ['personId']
-    header.extend((fname for name in cols_to_flatten for fname in make_col_names(name)))
-    flattened = []
-    for idx, row in to_flatten.iterrows():
-        out_row = [idx]
-        for col in cols_to_flatten:
-            for val in row[col]:
-                out_row.append(val)
-
-        flattened.append(out_row)
-
-    out_df = pd.DataFrame(flattened, columns=header)
-    flat_preds = pd.merge(flat_preds, out_df, left_on='personId', right_on='personId', how='outer')
-    return flat_preds
-
+    cols_to_drop = ['pos_shap_scores_w', 'neg_shap_scores_w']
+    prediction = prediction.drop(cols_to_drop + pos_cols_to_flatten + neg_cols_to_flatten, axis=1)
+    return prediction
 
 def get_quantiles(
         predictions: np.ndarray, predictor: Dict[str, Any], recompute_distribution: bool
@@ -351,11 +348,15 @@ def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFra
         predictor["mapping"], run_df, error_unknown_values=False
     )
 
+    df_inputs.columns = [urllib.parse.quote(col) for col in df_inputs.columns]
     df_inputs = reorder_inputs(df_inputs, predictor)
     run = xgb.DMatrix(df_inputs)
     factor_cutoff = (
         kwargs["predict_factor_cutoff"] if "predict_factor_cutoff" in kwargs else 1.0
     )
+    assert run.num_row() == run_df.shape[0]
+    assert df_inputs.shape[0] == run_df.shape[0]
+
     predictions, prediction_quantiles, shap_base_value, _ = perform_predictions(
         df_inputs,
         run,
@@ -366,17 +367,11 @@ def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFra
         factor_cutoff=factor_cutoff,
         **kwargs,
     )
+    assert predictions.shape[0] == run_df.shape[0]
 
     shap_pct = predictor.get("shap_pct")
     if shap_pct is None:
         shap_pct = calculate_shap_percentile(predictions)
-
-    predictions["pos_shap_percentile"] = predictions["pos_shap_scores"].apply(
-        shap_score_to_percentile, args=(shap_pct,)
-    )
-    predictions["neg_shap_percentile"] = predictions["neg_shap_scores"].apply(
-        shap_score_to_percentile, args=(shap_pct,)
-    )
 
     return predictions
 
@@ -393,8 +388,7 @@ def do_run(
         input_fpath: str, schema_fpath: str, model_fpath: str, output_fpath: str, **kwargs
 ) -> None:
     """
-    Read in a trained model, creating predictions for the data located at the input path
-    writes out predictions.
+    Deprecated run function.  Use do_run_claims instead.
     """
     logger.info(f"Running {model_fpath} using {input_fpath} to {output_fpath}")
     run_df = read_frame(input_fpath, schema_fpath)
@@ -409,36 +403,43 @@ def do_run(
         write_predictions(run_df, output_fpath)
 
 
-def do_run_claims(fdemo, fclaim, path_to_model, output, model_type, asOfDate):
+def do_run_claims(fdemo, fclaim, output, model_name, asOfDate, feature_file = None):
+    """
+    Reads in claims and demographics files along with a trained model and generates an output file with predictions.
+    """
     demo_df = read_demographics(fdemo)
     claim_df = read_claim(fclaim)
+    model_file = resource_filename('cv19index', f'resources/{model_name}/model.pickle')
 
-    if model_type == 'xgboost':
-        input_df = preprocess_xgboost(claim_df, demo_df, asOfDate)
-        input_df = input_df.set_index('personId', drop=True)
+    logger.info(f"Reading model from {model_file}.  Writing results to {output}")
 
-        model = read_model(path_to_model)
-        predictions = run_xgb_model(input_df, model)
+    input_df = preprocess_xgboost(claim_df, demo_df, asOfDate)
+    assert input_df.shape[0] == demo_df.shape[0], f"Demographics file had {demo_df.shape[0]} lines."
+    if feature_file is not None:
+        input_df.to_csv(feature_file)
 
-        write_xgb_predictions(predictions, output)
-    else:
-        logger.error(f"{model_type} is not a valid model type. valid models are xgboost.")
+    model = read_model(model_file)
+    predictions = run_xgb_model(input_df, model)
+    assert predictions.shape[0] == demo_df.shape[0], f"Predictions file didn't match demographics {predictions.shape[0]} != {demo_df.shape[0]} "
+
+    write_xgb_predictions(predictions, output)
+    logger.info(f"Done.  Wrote {predictions.shape[0]} predictions.")
 
 
 def parser():
-    logging.basicConfig(level=logging.INFO)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("demographics")
-    parser.add_argument("claim")
-    parser.add_argument("output", default=f'{datetime.now().strftime("%Y-%M-%dT%H:%m:%S")}-prediction_summary.csv')
-    parser.add_argument("-m", "--model", choices=["xgboost"], default="xgboost")
-    parser.add_argument("-p", "--path-to-model", default="cv19index/resources/xgboost/model.pickle")
-    parser.add_argument("-a", "--as-of-date", default=pd.to_datetime(datetime.now().isoformat()))
+    parser = argparse.ArgumentParser(description="Runs the CV19 Vulnerability Index form the command line.  Takes two files as input and produces an output file containing the predictions.")
+    parser.add_argument("demographics_file", help='Path to the file containing demographics')
+    parser.add_argument("claims_file", help='Path to the file containing claims data')
+    parser.add_argument("output_file", default=f'predictions-{datetime.now().strftime("%Y-%M-%dT%H:%m:%S")}.csv', help='Path to the output file containing the results of the predictions.')
+    parser.add_argument("-f", "--feature-file", help='If specified, writes a CSV file containing the preprocessed features that will be fed to the model.')
+    parser.add_argument("-m", "--model", choices=["xgboost", "xgboost_all_ages"], default="xgboost_all_ages", help="Name of the model to use.  Corresponds to a directory under cv19index/resources.")
+    parser.add_argument("-a", "--as-of-date", default=pd.to_datetime(datetime.today().isoformat()), help="Claims data uses data from 1 year prior to the prediction date.  This defaults to the current date, but can be overridden with this argument.")
 
     return parser.parse_args()
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
     args = parser()
-    do_run_claims(args.demographics, args.fclaim, args.path_to_model, args.output, args.model)
+    do_run_claims(args.demographics_file, args.claims_file, args.output_file, args.model, args.as_of_date, args.feature_file)

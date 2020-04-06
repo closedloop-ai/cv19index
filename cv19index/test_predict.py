@@ -6,9 +6,8 @@ import pandas as pd
 
 
 def test_do_run_claims():
-    do_run_claims('examples/data/demographics.csv',
-                  'examples/data/claims.xls',
-                  "cv19index/resources/xgboost/model.pickle",
+    do_run_claims('examples/demographics.csv',
+                  'examples/claims.xlsx',
                   f'{datetime.now().strftime("%Y-%M-%dT%H:%m:%S")}-prediction_summary.csv',
                   'xgboost',
                   pd.to_datetime('2018-12-01'))
@@ -16,8 +15,8 @@ def test_do_run_claims():
 
 def test_do_run():
     asOfDate = pd.to_datetime('2018-12-01')
-    demo_df = read_demographics('examples/data/demographics.csv')
-    claim_df = read_claim('examples/data/claims.xls')
+    demo_df = read_demographics('examples/demographics.csv')
+    claim_df = read_claim('examples/claims.xls')
 
     result_df = preprocess_xgboost(claim_df, demo_df, asOfDate)
     result_df = result_df.set_index('personId', drop=True)

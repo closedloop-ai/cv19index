@@ -128,6 +128,8 @@ def generate_shap_top_factors(
     )
     logger.warning(f"SHAP values completed")
     shap_df = pd.DataFrame(shap_values)
+    #logger.info(f"SHAP: {shap_df.shape[0]} {df.shape[0]}")
+
     shap_base_value = shap_df.iloc[0, -1]
 
     # drop the bias term (last column) - unless it's not present.
@@ -156,7 +158,13 @@ def generate_shap_top_factors(
     shap_df.index = df.index
 
     # join original data with shap_df
-    joined_df = pd.merge(df, shap_df, left_index=True, right_index=True)
+    assert shap_df.shape[0] == df.shape[0]
+    assert len(set(shap_df.index.values)) == df.shape[0]
+    assert len(set(df.index.values)) == df.shape[0]
+    assert (shap_df.index.values == df.index.values).all()
+    #joined_df = pd.merge(df, shap_df, left_index=True, right_index=True)
+    joined_df = df.join(shap_df)
+    assert joined_df.shape[0] == df.shape[0], f"{joined_df.shape[0]} == {df.shape[0]}"
 
     # unmap categorical columns
     joined_df = unmap_int_cols(joined_df, outcome_column, mapping)
@@ -200,19 +208,6 @@ def calculate_shap_percentile(pred):
     shap_pct = np.percentile(all_shap_scores, q)
 
     return shap_pct
-
-
-def shap_score_to_percentile(shap_scores, shap_pct):
-    """function to calculate the percentiles of a list of shap scores"""
-
-    pct_list = [
-        np.where(
-            shap_pct == (min(shap_pct, key=lambda x: abs(x - np.abs(shap_score))))
-        )[0][0]
-        for shap_score in shap_scores
-    ]
-
-    return pct_list
 
 
 def filter_rows_with_index(r, cutoff):
