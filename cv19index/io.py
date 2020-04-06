@@ -74,7 +74,6 @@ def read_frame(fpath, schema_fpath, date_cols = []) -> pd.DataFrame:
 
 
 def read_excel(fpath, dtype, date_cols) -> pd.DataFrame:
-    date_cols = [k for k, v in dtype.items() if v == "date"]
     na_values = get_na_values(dtype)
 
     df = pd.read_excel(
@@ -85,6 +84,8 @@ def read_excel(fpath, dtype, date_cols) -> pd.DataFrame:
         na_values=na_values,
         keep_default_na=False
     )
+    for c in date_cols:
+        df[c] = pd.to_datetime(df[c], infer_datetime_format = True)
 
     return df
 

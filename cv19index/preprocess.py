@@ -59,7 +59,7 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
                       'dx14', 'dx15', 'dx16']
     preprocessed_df = demo_df.loc[:,['gender', 'age']].rename(columns={'gender': 'Gender', 'age': 'Age'})
 
-    logger.debug(f"Beginning claim data frame preprocessing, raw data frame as follows.")
+    logger.debug(f"Beginning claims data frame preprocessing, raw data frame as follows.")
     logger.debug(claim_df.head(5))
 
     asOfPastYear = str(pd.to_datetime(asOfDate) - pd.DateOffset(years=1))[:10]
