@@ -14,7 +14,7 @@ __With the 1.1.0 release, the CV19 Index can now make predictions for any adult.
 [Running The Model](#running-the-model) |
 [Interpreting Results](#interpreting-the-results) |
 [Model Performance](#model-performance) |
-[Contributing](#contributing) |
+[Contributing](#contributing-to-the-cv19-index) |
 [Release Notes](NEWS.md)
 
 The  COVID-19 Vulnerability Index (CV19 Index) is a predictive model that identifies people who are likely to have a heightened vulnerability to severe complications from COVID-19 (commonly referred to as “The Coronavirus”).  The CV19 Index is intended to help hospitals, federal / state / local public health agencies and other healthcare organizations in their work to identify, plan for, respond to, and reduce the impact of COVID-19 in their communities.
