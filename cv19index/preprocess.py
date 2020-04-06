@@ -51,7 +51,7 @@ def cleanICD10Syntax(code):
     if len(code) > 3 and '.' not in code:
         return code[:3] + '.' + code[3:]
     else:
-        code
+        return code
 
 
 def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: pd.datetime):
