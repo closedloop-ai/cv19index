@@ -175,6 +175,6 @@ We are not allowed to share the data used to train the models with our collabora
 A few examples are:
 * Helping us build mappings from common claims data formats for this predictor, such as OMAP and CCLF.  https://www.ohdsi.org/data-standardization/the-common-data-model/
 * Converting CMS BlueButton data into a format usable by this model: https://https://bluebutton.cms.gov/  
-* Providing install instructions and support on more platforms.
+* Providing install instructions and support on more platforms.  See issue #10 & #11
 
 
