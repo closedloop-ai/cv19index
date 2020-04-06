@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import math
+import urllib
 from typing import Any, Dict, List, Tuple
 from datetime import datetime
 
@@ -232,6 +233,7 @@ def perform_predictions(
         prediction_result["neg_factors"] = (
             reset_multiindex(prediction_result)[["neg_factors", "neg_index_filter"]]
                 .apply(lambda x: select_index(*x), axis=1)
+                .apply(lambda x: [urllib.parse.unquote(col) for col in x])
                 .values
         )
         prediction_result["neg_patient_values"] = (
@@ -257,6 +259,7 @@ def perform_predictions(
         prediction_result["pos_factors"] = (
             reset_multiindex(prediction_result)[["pos_factors", "pos_index_filter"]]
                 .apply(lambda x: select_index(*x), axis=1)
+                .apply(lambda x: [urllib.parse.unquote(col) for col in x])
                 .values
         )
         prediction_result["pos_patient_values"] = (
@@ -286,10 +289,10 @@ def flatten_predictions(prediction: pd.DataFrame):
 
     for i in range(10):
         for name in pos_cols_to_flatten:
-            prediction[f"{name}_{i+1}"] = prediction[name].apply(lambda x: x[i])
+            prediction[f"{name}_{i+1}"] = prediction[name].apply(lambda x: x[i] if i < len(x) else None)
     for i in range(10):
         for name in neg_cols_to_flatten:
-            prediction[f"{name}_{i+1}"] = prediction[name].apply(lambda x: x[i])
+            prediction[f"{name}_{i+1}"] = prediction[name].apply(lambda x: x[i] if i < len(x) else None)
 
     cols_to_drop = ['pos_shap_scores_w', 'neg_shap_scores_w']
     prediction = prediction.drop(cols_to_drop + pos_cols_to_flatten + neg_cols_to_flatten, axis=1)
@@ -345,6 +348,7 @@ def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFra
         predictor["mapping"], run_df, error_unknown_values=False
     )
 
+    df_inputs.columns = [urllib.parse.quote(col) for col in df_inputs.columns]
     df_inputs = reorder_inputs(df_inputs, predictor)
     run = xgb.DMatrix(df_inputs)
     factor_cutoff = (
@@ -399,7 +403,7 @@ def do_run(
         write_predictions(run_df, output_fpath)
 
 
-def do_run_claims(fdemo, fclaim, output, model_name, asOfDate):
+def do_run_claims(fdemo, fclaim, output, model_name, asOfDate, feature_file = None):
     """
     Reads in claims and demographics files along with a trained model and generates an output file with predictions.
     """
@@ -411,6 +415,8 @@ def do_run_claims(fdemo, fclaim, output, model_name, asOfDate):
 
     input_df = preprocess_xgboost(claim_df, demo_df, asOfDate)
     assert input_df.shape[0] == demo_df.shape[0], f"Demographics file had {demo_df.shape[0]} lines."
+    if feature_file is not None:
+        input_df.to_csv(feature_file)
 
     model = read_model(model_file)
     predictions = run_xgb_model(input_df, model)
@@ -425,8 +431,9 @@ def parser():
     parser = argparse.ArgumentParser(description="Runs the CV19 Vulnerability Index form the command line.  Takes two files as input and produces an output file containing the predictions.")
     parser.add_argument("demographics_file", help='Path to the file containing demographics')
     parser.add_argument("claims_file", help='Path to the file containing claims data')
-    parser.add_argument("output_file", default=f'{datetime.now().strftime("%Y-%M-%dT%H:%m:%S")}-prediction_summary.csv', help='Path to the output file containing the results of the predictions.')
-    parser.add_argument("-m", "--model", choices=["xgboost"], default="xgboost_all_ages", help="Name of the model to use.  Corresponds to a directory under cv19index/resources.")
+    parser.add_argument("output_file", default=f'predictions-{datetime.now().strftime("%Y-%M-%dT%H:%m:%S")}.csv', help='Path to the output file containing the results of the predictions.')
+    parser.add_argument("-f", "--feature-file", help='If specified, writes a CSV file containing the preprocessed features that will be fed to the model.')
+    parser.add_argument("-m", "--model", choices=["xgboost", "xgboost_all_ages"], default="xgboost_all_ages", help="Name of the model to use.  Corresponds to a directory under cv19index/resources.")
     parser.add_argument("-a", "--as-of-date", default=pd.to_datetime(datetime.today().isoformat()), help="Claims data uses data from 1 year prior to the prediction date.  This defaults to the current date, but can be overridden with this argument.")
 
     return parser.parse_args()
@@ -435,4 +442,4 @@ def parser():
 def main():
     logging.basicConfig(level=logging.DEBUG)
     args = parser()
-    do_run_claims(args.demographics_file, args.claims_file, args.output_file, args.model, args.as_of_date)
+    do_run_claims(args.demographics_file, args.claims_file, args.output_file, args.model, args.as_of_date, args.feature_file)

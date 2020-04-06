@@ -93,19 +93,25 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
 
     for CCSR, description in nodes.values:
         # Getting the codes
-        # codes = edges_df[edges_df['parent'].str.contains(CCSR)]
-        # selected_claim = claim_df.loc[claim_df.isin(codes['code'].values).any(axis=1), 'personId'].values
-        #selected_personId = np.unique(selected_claim)
-        selected_personId = []
+        codes = set(edges_df[edges_df['parent'].str.contains(CCSR)]['code'].values)
+        #logger.debug(f"Codes are {codes}")
+        matches = claim_df.loc[:,used_diags].isin(codes).any(axis=1)
+        #logger.debug(f"Matches are {matches.shape[0]}\n{matches.head()}")
+        selected_claim = claim_df.loc[matches, 'personId']
+        #logger.debug(f"selected_claim are {selected_claim.shape[0]}\n{selected_claim.head()}")
+        selected_personId = np.unique(selected_claim)
+        #logger.debug(f"Selected are {selected_personId.shape[0]}")
 
         # Assigning the diagnosis flag to the person
         description = re.sub("[^\P{P}-/']+", "_", description.replace(")", ""))
         column_name = "Diagnosis of " + description + " in the previous 12 months"
         preprocessed_df[column_name] = pd.Series(True, index=selected_personId, dtype=np.bool)
-        preprocessed_df[column_name] = preprocessed_df[column_name].astype(np.bool)
+        preprocessed_df[column_name] = preprocessed_df[column_name].fillna(False)
+        #preprocessed_df[column_name] = preprocessed_df[column_name].astype(np.bool)
+        #logger.debug(f"Final is\n{preprocessed_df[column_name]}")
 
-    # returning the needed features.
-    preprocessed_df.fillna(0)
+    # fill in 0's
+    preprocessed_df.fillna(0, inplace=True)
 
     logger.debug(f"Preprocessing complete.")
     return preprocessed_df
