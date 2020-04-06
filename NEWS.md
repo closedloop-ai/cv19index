@@ -8,7 +8,9 @@ This release is a significant update
 
 #### All ages model
 
-This release incorporates a new model that is now appropriate for all ages.  This model was trained on a combination of the original CMS Medicare data along with additional data provided by [HealthFirst](https://healthfirst.org/).  
+This release incorporates a new model that is now appropriate for adults ages 18 and over.  This model was trained on a combination of the original CMS Medicare data along with additional data provided by [HealthFirst](https://healthfirst.org/).  
+
+The original Medicare only 'xgboost' model is still available by adding a `-m xgboost` option to cv19index.  However, even for Medicare populations we recommend moving to the new `xgboost_all_ages` model.  This model is now the default.  
 
 #### Other updates
 
