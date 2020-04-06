@@ -36,16 +36,20 @@ def get_na_values(dtypes):
 
 
 def read_claim(fpath: str) -> pd.DataFrame:
-    schame_fpath = resource_filename("cv19index", "resources/xgboost/claims.schema.json")
-    return read_frame(fpath, schame_fpath)
+    schame_fpath = resource_filename("cv19index", "resources/claims.schema.json")
+    return read_frame(fpath, schame_fpath, date_cols = ['admitDate', 'dischargeDate'])
 
+import collections
 
 def read_demographics(fpath: str) -> pd.DataFrame:
-    schema_fpath = resource_filename("cv19index", "resources/xgboost/demographics.schema.json")
-    return read_frame(fpath, schema_fpath)
+    schema_fpath = resource_filename("cv19index", "resources/demographics.schema.json")
+    df = read_frame(fpath, schema_fpath).set_index('personId')
+    duplicates = [x[0] for x in collections.Counter(df.index.values).items() if x[1] > 1]
+    assert len(duplicates) == 0, f"Duplicate person ids in demographics file: {duplicates[:5]}"
+    return df
 
 
-def read_frame(fpath, schema_fpath) -> pd.DataFrame:
+def read_frame(fpath, schema_fpath, date_cols = []) -> pd.DataFrame:
     XLS = ('xls', 'xlsx', 'xlsm', 'xlsb', 'odf')
 
     def is_excel(fpath: str) -> bool:
@@ -56,11 +60,11 @@ def read_frame(fpath, schema_fpath) -> pd.DataFrame:
     dtypes = schema_dtypes(schema["schema"])
 
     if is_excel(fpath):
-        df = read_excel(fpath, dtypes)
+        df = read_excel(fpath, dtypes, date_cols)
     elif fpath.endswith(".parquet"):
-        df = read_parquet(fpath, dtypes)
+        df = read_parquet(fpath, dtypes, date_cols)
     elif fpath.endswith(".csv"):
-        df = read_csv(fpath, dtypes)
+        df = read_csv(fpath, dtypes, date_cols)
     else:
         raise TypeError(f'This script reads files based the extension.\n'
                         f'The known extensions are {", ".join(XLS)}, .parquet, .csv'
@@ -69,8 +73,8 @@ def read_frame(fpath, schema_fpath) -> pd.DataFrame:
     return df
 
 
-def read_excel(fpath, dtype) -> pd.DataFrame:
-    date_cols = [k for k, v in dtype.items() if v == "datetime"]
+def read_excel(fpath, dtype, date_cols) -> pd.DataFrame:
+    date_cols = [k for k, v in dtype.items() if v == "date"]
     na_values = get_na_values(dtype)
 
     df = pd.read_excel(
@@ -85,16 +89,14 @@ def read_excel(fpath, dtype) -> pd.DataFrame:
     return df
 
 
-def read_parquet(fpath, dtype) -> pd.DataFrame:
+def read_parquet(fpath, dtype, date_cols) -> pd.DataFrame:
     df = pd.read_parquet(fpath)
     # Now set the index.
     df = df.set_index(INDEX)
     return df
 
 
-def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
-
-    date_cols = [k for k, v in dtype.items() if v == "datetime"]
+def read_csv(fpath: str, dtype: Dict, date_cols) -> pd.DataFrame:
     na_values = get_na_values(dtype)
 
     # Pandas won't read in ints with NA values, so read those in as floats.
@@ -115,7 +117,7 @@ def read_csv(fpath: str, dtype: Dict) -> pd.DataFrame:
     # by converting those to an int(0) instead of None.
     # Thanks pandas, but I'd prefer None here.
     for c in date_cols:
-        df.loc[df[c] == 0, [c]] = None
+        df[c] = pd.to_datetime(df[c], infer_datetime_format = True)
 
     return df
 

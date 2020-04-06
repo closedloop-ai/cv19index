@@ -1,0 +1,25 @@
+{
+  "schema": [
+    {
+      "name": "personId",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    },
+    {
+      "name": "gender",
+      "dataType": {
+        "dataType": "string",
+        "metadata": {}
+      }
+    },
+    {
+      "name": "age",
+      "dataType": {
+        "dataType": "integer",
+        "metadata": {}
+      }
+    }
+  ]
+}
