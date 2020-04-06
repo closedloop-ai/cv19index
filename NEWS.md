@@ -3,6 +3,11 @@ CV19 Index Change Log
 
 This file records the changes in CV19 Index library in reverse chronological order.
 
+## v1.1.1 (2020.04.06)
+
+* Fixes handling of Excel files for input
+* Fixes some broken links in the README.
+
 ## v1.1.0 (2020.04.06)
 This release is a significant update 
 
