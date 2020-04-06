@@ -426,7 +426,7 @@ def parser():
     parser.add_argument("demographics_file", help='Path to the file containing demographics')
     parser.add_argument("claims_file", help='Path to the file containing claims data')
     parser.add_argument("output_file", default=f'{datetime.now().strftime("%Y-%M-%dT%H:%m:%S")}-prediction_summary.csv', help='Path to the output file containing the results of the predictions.')
-    parser.add_argument("-m", "--model", choices=["xgboost"], default="xgboost", help="Name of the model to use.  Corresponds to a directory under cv19index/resources.")
+    parser.add_argument("-m", "--model", choices=["xgboost"], default="xgboost_all_ages", help="Name of the model to use.  Corresponds to a directory under cv19index/resources.")
     parser.add_argument("-a", "--as-of-date", default=pd.to_datetime(datetime.today().isoformat()), help="Claims data uses data from 1 year prior to the prediction date.  This defaults to the current date, but can be overridden with this argument.")
 
     return parser.parse_args()
