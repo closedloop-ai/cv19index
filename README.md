@@ -107,7 +107,7 @@ predictions_df = run_model(input_df, model)
 
 ## Contributing to the CV19 Index
 
-We are not allowed to share the data used to train the models and build the index iwth our collaborators, but there are tons of ways you can help.  If you are interested in participating, please contact us at covid19-info@closedloop.ai  
+We are not allowed to share the data used to train the models with our collaborators, but there are tons of ways you can help.  If you are interested in participating, just pick up one of the issues marked with the GitHub "help wanted" tag or contact us at covid19-info@closedloop.ai  
 
 A few examples are:
 * Helping us build mappings from common claims data formats for this predictor, such as OMAP and CCLF.  https://www.ohdsi.org/data-standardization/the-common-data-model/
