@@ -8,7 +8,7 @@ __With the 1.1.0 release, the CV19 Index can now make predictions for any adult.
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![PyPI version](https://badge.fury.io/py/cv19index.svg)](https://pypi.python.org/pypi/cv19index/)
-[![Release](/github/v/release/closedloopai/cv19index)]
+![Release](https://img.shields.io/github/release/closedloop-ai/cv19index/all.svg)
 
 [Install](#installing-the-cv19-index) |
 [Data Prep](#data-prep) |
