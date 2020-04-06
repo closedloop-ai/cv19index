@@ -1,6 +1,6 @@
 > [Join us for our webinar](https://closedloop.ai/cv19index-webinar) on the CV19 Index on Wednesday, April 8th, 2020 from 2:00 – 3:00pm CDT.
 
-__With the 1.1 release, the CV19 Index can now make predictions for any adult.  It is no longer restricted to Medicare populations.__ 
+__With the 1.1.0 release, the CV19 Index can now make predictions for any adult.  It is no longer restricted to Medicare populations.__ 
 
 <img src=https://closedloop.ai/wp-content/uploads/2020/03/CV19-Index-Logo.png width=300/>  
 
