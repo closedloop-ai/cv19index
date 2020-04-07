@@ -3,6 +3,10 @@ CV19 Index Change Log
 
 This file records the changes in CV19 Index library in reverse chronological order.
 
+## v1.1.2 (2020.04.07)
+
+* Fixes #21 - error with newer versions of Pandas
+
 ## v1.1.1 (2020.04.06)
 
 * Fixes handling of Excel files for input

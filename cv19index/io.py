@@ -6,7 +6,6 @@ import math
 import pickle
 from typing import Dict
 import pandas as pd
-from pandas.io.common import _NA_VALUES
 from pkg_resources import resource_filename
 
 from .util import schema_dtypes
@@ -25,6 +24,10 @@ def get_na_values(dtypes):
     # Pandas converts a string with "NA" as a real NaN/Null. We don't want this
     # for real string columns. NA can show up as a real flag in data and
     # it doesn't mean it should be treated as NaN/Null.
+    _NA_VALUES = set([
+        '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
+        'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''
+    ])
     def na_vals(x):
         # For now, only ignore NA conversion for strings. Structs/etc can still use it.
         if x in ("string", ):
