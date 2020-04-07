@@ -8,7 +8,7 @@ README = (HERE / "README.md").read_text("utf-8")
 
 setup(
     name="cv19index",
-    version="1.1.2",
+    version="1.1.3",
     description="COVID-19 Vulnerability Index",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -28,18 +28,19 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     packages=find_packages(),
-    include_package_data=True,
+    include_package_data=False,
     zip_safe=False,
     package_data={
         "cv19index": [
+            "resources/logistic_regression/lr.p",
             "resources/xgboost/input.csv.schema.json",
             "resources/xgboost/model.pickle",
             "resources/xgboost_all_ages/input.csv.schema.json",
             "resources/xgboost_all_ages/model.pickle",
-            "resources/demo.schema.json",
-            "resources/claims.schema.json",
             "resources/ccsrEdges.txt",
             "resources/ccsrNodes.txt",
+            "resources/demographics.schema.json",
+            "resources/claims.schema.json",
         ]
     },
     entry_points={
