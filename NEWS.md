@@ -3,6 +3,10 @@ CV19 Index Change Log
 
 This file records the changes in CV19 Index library in reverse chronological order.
 
+## v1.1.3 (2020.04.07)
+
+* Fixes #25 - resources directory missing with PIP install
+
 ## v1.1.2 (2020.04.07)
 
 * Fixes #21 - error with newer versions of Pandas
