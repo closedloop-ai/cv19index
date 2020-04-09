@@ -76,7 +76,8 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
 
     inpatient_rows = claim_df.loc[claim_df['inpatient'] == True, :]
     preprocessed_df['# of Admissions (12M)'] = inpatient_rows.groupby('personId').admitDate.nunique()
-    inpatient_days = pd.Series((inpatient_rows['dischargeDate'].dt.date - inpatient_rows['admitDate'].dt.date).dt.days, index=claim_df['personId'])
+    date_diff = pd.to_timedelta(inpatient_rows['dischargeDate'].dt.date - inpatient_rows['admitDate'].dt.date)
+    inpatient_days = pd.Series(date_diff.dt.days, index=claim_df['personId'])
     preprocessed_df['Inpatient Days'] = inpatient_days.groupby('personId').sum()
 
     # Cleaning the diagnosis codes to apply to all the dx cols
