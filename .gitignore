@@ -3,7 +3,7 @@ __pycache__
 .vscode
 tmp
 /.idea/
-/cv19index.iml
+/*.iml
 *.egg-info
 build
 dist
