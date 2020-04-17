@@ -90,6 +90,7 @@ def perform_predictions(
         shap_cutoff: float = 0.02,
         compute_factors: bool = True,
         factor_cutoff: float = None,
+        quote: bool = True,
         **kwargs,
 ) -> Tuple[pd.DataFrame, List[float], float, float]:
     """
@@ -230,10 +231,15 @@ def perform_predictions(
                 .apply(lambda x: select_index(*x), axis=1)
                 .values
         )
+        def unquote(col):
+            if quote:
+                return urllib.parse.unquote(col)
+            else:
+                return col
         prediction_result["neg_factors"] = (
             reset_multiindex(prediction_result)[["neg_factors", "neg_index_filter"]]
                 .apply(lambda x: select_index(*x), axis=1)
-                .apply(lambda x: [urllib.parse.unquote(col) for col in x])
+                .apply(lambda x: [unquote(col) for col in x])
                 .values
         )
         prediction_result["neg_patient_values"] = (
@@ -259,7 +265,7 @@ def perform_predictions(
         prediction_result["pos_factors"] = (
             reset_multiindex(prediction_result)[["pos_factors", "pos_index_filter"]]
                 .apply(lambda x: select_index(*x), axis=1)
-                .apply(lambda x: [urllib.parse.unquote(col) for col in x])
+                .apply(lambda x: [unquote(col) for col in x])
                 .values
         )
         prediction_result["pos_patient_values"] = (
@@ -341,14 +347,15 @@ def reorder_inputs(df_inputs: pd.DataFrame, predictor: Dict[str, Any]) -> pd.Dat
     return df_inputs
 
 
-def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFrame:
+def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, quote: bool, **kwargs) -> pd.DataFrame:
     import xgboost as xgb
 
     df_inputs = apply_int_mapping(
         predictor["mapping"], run_df, error_unknown_values=False
     )
 
-    df_inputs.columns = [urllib.parse.quote(col) for col in df_inputs.columns]
+    if quote:
+        df_inputs.columns = [urllib.parse.quote(col) for col in df_inputs.columns]
     df_inputs = reorder_inputs(df_inputs, predictor)
     run = xgb.DMatrix(df_inputs)
     factor_cutoff = (
@@ -365,6 +372,7 @@ def run_xgb_model(run_df: pd.DataFrame, predictor: Dict, **kwargs) -> pd.DataFra
         recompute_distribution=False,
         shap_score_99=predictor["shap_score_99"],
         factor_cutoff=factor_cutoff,
+        quote = quote,
         **kwargs,
     )
     assert predictions.shape[0] == run_df.shape[0]
@@ -385,7 +393,7 @@ def write_xgb_predictions(predictions: pd.DataFrame, summary_file):
 
 
 def do_run(
-        input_fpath: str, schema_fpath: str, model_fpath: str, output_fpath: str, **kwargs
+        input_fpath: str, schema_fpath: str, model_fpath: str, output_fpath: str, quote: bool, **kwargs
 ) -> None:
     """
     Deprecated run function.  Use do_run_claims instead.
@@ -419,7 +427,8 @@ def do_run_claims(fdemo, fclaim, output, model_name, asOfDate, feature_file = No
         input_df.to_csv(feature_file)
 
     model = read_model(model_file)
-    predictions = run_xgb_model(input_df, model)
+    quote = model_name == 'xgboost_all_ages'
+    predictions = run_xgb_model(input_df, model, quote = quote)
     assert predictions.shape[0] == demo_df.shape[0], f"Predictions file didn't match demographics {predictions.shape[0]} != {demo_df.shape[0]} "
 
     write_xgb_predictions(predictions, output)
