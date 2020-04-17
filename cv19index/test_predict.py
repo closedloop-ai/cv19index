@@ -12,6 +12,13 @@ def test_do_run_claims():
                   'xgboost_all_ages',
                   pd.to_datetime('2018-12-01'))
 
+def test_do_run_claims_xgboost():
+    do_run_claims('examples/demographics.csv',
+                  'examples/claims.csv',
+                  f'predictions-{datetime.now().strftime("%Y-%M-%dT%H-%m-%S")}.csv',
+                  'xgboost',
+                  pd.to_datetime('2018-12-01'))
+
 def test_do_run_claims_no_inp():
     do_run_claims('testData/demographics_one_person.csv',
                   'testData/claims_no_inp.csv',
