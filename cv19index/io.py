@@ -30,7 +30,7 @@ def get_na_values(dtypes):
     ])
     def na_vals(x):
         # For now, only ignore NA conversion for strings. Structs/etc can still use it.
-        if x in ("string", ):
+        if x in ("str", ):
             return []
         else:
             return _NA_VALUES

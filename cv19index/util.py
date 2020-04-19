@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 _defaultDtypeDict = {
-    "string": "object",
+    "string": "str",
     "struct": "object",
     "boolean": "bool",
     "double": "float64",

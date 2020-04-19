@@ -92,11 +92,20 @@ def preprocess_xgboost(claim_df: pd.DataFrame, demo_df: pd.DataFrame, asOfDate: 
     edges_df = pd.read_csv(resource_filename('cv19index', 'resources/ccsrEdges.txt'))
     edges_df['code'] = edges_df['child'].apply(lambda x: x.split(':')[1])
 
+    diags_unique = pd.unique(claim_df[used_diags].values.ravel('K'))
+    diags_dtype = pd.api.types.CategoricalDtype(categories=diags_unique,
+                                                ordered=False)
+
+    diags_df = pd.DataFrame()
+    for column in used_diags:
+        diags_df[column] = claim_df[column].astype(diags_dtype).cat.codes
+
     for CCSR, description in nodes.values:
         # Getting the codes
-        codes = set(edges_df[edges_df['parent'].str.contains(CCSR)]['code'].values)
+        codes = edges_df[edges_df['parent'].str.contains(CCSR)]['code']
         #logger.debug(f"Codes are {codes}")
-        matches = claim_df.loc[:,used_diags].isin(codes).any(axis=1)
+        codes_s = pd.unique(codes.astype(diags_dtype).cat.codes)
+        matches = diags_df.isin(codes_s).any(axis=1)
         #logger.debug(f"Matches are {matches.shape[0]}\n{matches.head()}")
         selected_claim = claim_df.loc[matches, 'personId']
         #logger.debug(f"selected_claim are {selected_claim.shape[0]}\n{selected_claim.head()}")
