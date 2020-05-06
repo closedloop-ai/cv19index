@@ -37,7 +37,7 @@ The CV19 Index can be installed from [PyPI](https://pypi.org/project/shap):
 pip install cv19index
 </pre>
 
-_Notes for windows users_:  Some Microsoft Windows users have gotten errors when running pip related to installing the SHAP and XGBoost dependencies.  For these users we have provided prebuilt wheel files.  To use these, download the wheel for [SHAP](http://c19survey.closedloop.ai/shap-0.35.0-cp37-cp37m-win_amd64.whl) and/or [XGBoost](https://c19survey.closedloop.ai/xgboost-1.0.2-py3-none-win_amd64.whl) to your machine.  Then, from the directory where you downloaded the files, run:
+_Notes for windows users_:  Some Microsoft Windows users have gotten errors when running pip related to installing the SHAP and XGBoost dependencies.  For these users we have provided prebuilt wheel files.  To use these, download the wheel for [SHAP](http://c19survey.closedloop.ai/shap-0.35.0-cp37-cp37m-win_amd64.whl) and/or [XGBoost](http://c19survey.closedloop.ai/xgboost-1.0.2-py3-none-win_amd64.whl) to your machine.  Then, from the directory where you downloaded the files, run:
 
 <pre>
 pip install xgboost-1.0.2-py3-none-win_amd64.whl
