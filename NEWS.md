@@ -3,6 +3,10 @@ CV19 Index Change Log
 
 This file records the changes in CV19 Index library in reverse chronological order.
 
+## v1.1.4 (2020.05.12)
+
+* Fixes #21, #25, #26, #28 - handle  cases where there is no inpatient data.  Also fixed some install issues related to having different versions of various dependencies.
+
 ## v1.1.3 (2020.04.07)
 
 * Fixes #25 - resources directory missing with PIP install
